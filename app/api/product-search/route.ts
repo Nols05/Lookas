@@ -37,17 +37,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get file extension
-    const fileType = file.type.split('/')[1];
-    const extension = fileType === 'jpeg' || fileType === 'jpg' ? 'jpeg' : 'png';
-
-    // Convert file to base64 and create a data URL
-    const arrayBuffer = await file.arrayBuffer();
-    const base64Image = Buffer.from(arrayBuffer).toString('base64');
-    const imageUrl = `data:image/${extension};base64,${base64Image}`;
-
-    // Call the Inditex API with query parameter
-    const encodedImageUrl = encodeURIComponent(imageUrl);
     const apiUrl = `https://api.inditex.com/pubvsearch/products?image=https://static.zara.net/assets/public/4f21/2344/b7234241a320/0ba6973fa1c9/04387050711-p/04387050711-p.jpg?ts=1743523678871&w=1024`;
 
     const response = await fetch(apiUrl, {
