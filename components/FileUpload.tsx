@@ -261,7 +261,7 @@ export default function FileUpload() {
               </p>
               <Button
                 variant="outline"
-                className="mt-4"
+                className="mt-4 cursor-none"
                 onClick={openFilePicker}
               >
                 <UploadIcon
@@ -293,7 +293,7 @@ export default function FileUpload() {
         {/* Process Image Button */}
         {previewUrl && (
           <Button
-            className="mt-4 w-full hover:shadow-lg border-neutral-100 border cursor-pointer"
+            className="mt-4 w-full hover:shadow-lg border-neutral-100 border cursor-none"
             onClick={handleProcessImage}
             disabled={isProcessing}
           >

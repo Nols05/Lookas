@@ -43,14 +43,6 @@ async function getRandomUserAgent(): Promise<string> {
     return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
 }
 
-async function exponentialBackoff(retryCount: number): Promise<void> {
-    const baseDelay = 1000; // 1 second
-    const maxDelay = 60000; // 1 minute
-    const delay = Math.min(baseDelay * Math.pow(2, retryCount), maxDelay);
-    const jitter = Math.random() * 1000; // Add up to 1 second of random jitter
-    await new Promise(resolve => setTimeout(resolve, delay + jitter));
-}
-
 /**
  * Scrapes all product images from a Zara product page
  * @param productUrl The URL of the Zara product page
@@ -61,8 +53,7 @@ export async function scrapeProductImages(productUrl: string, proxy?: ProxyConfi
     const USER_AGENT = await getRandomUserAgent();
     const delay = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
     const images: ImageInfo[] = [];
-    const MAX_RETRIES = 3;
-    const TIMEOUT = 30000; // Increased to 30 seconds
+    const TIMEOUT = 30000; // 30 seconds
 
     console.log('Starting Zara image scraper...');
     const browser = await getBrowser();
@@ -111,54 +102,22 @@ export async function scrapeProductImages(productUrl: string, proxy?: ProxyConfi
     });
 
     try {
-        let response = null;
-        let retryCount = 0;
-
-        while (!response && retryCount < MAX_RETRIES) {
-            try {
-                console.log(`Navigating to ${productUrl} (Attempt ${retryCount + 1}/${MAX_RETRIES})`);
-                response = await page.goto(productUrl, {
-                    waitUntil: 'domcontentloaded',
-                    timeout: TIMEOUT
-                });
-
-                // Check if we're being rate limited or blocked
-                const content = await page.content();
-                if (content.toLowerCase().includes('rate limit') ||
-                    content.toLowerCase().includes('blocked') ||
-                    content.toLowerCase().includes('captcha')) {
-
-                    console.log('Detected protection mechanism, implementing backoff strategy...');
-                    await exponentialBackoff(retryCount);
-
-                    if (retryCount === MAX_RETRIES - 1) {
-                        throw new Error('Protection mechanism detected after all retries');
-                    }
-
-                    retryCount++;
-                    continue;
-                }
-
-            } catch (navigationError) {
-                retryCount++;
-                console.error(`Navigation attempt ${retryCount} failed:`, navigationError);
-
-                if (retryCount === MAX_RETRIES) {
-                    throw navigationError;
-                }
-
-                await exponentialBackoff(retryCount);
-            }
-        }
+        console.log(`Navigating to ${productUrl}`);
+        const response = await page.goto(productUrl, {
+            waitUntil: 'networkidle2',
+            timeout: TIMEOUT
+        });
 
         if (!response) {
-            throw new Error('Failed to load page: No response received after all retries');
+            throw new Error('No response received from page navigation');
         }
 
-        console.log(`Response status: ${response.status()} ${response.statusText()}`);
+        const status = response.status();
+        const statusText = response.statusText();
+        console.log(`Response status: ${status} ${statusText}`);
 
         if (!response.ok()) {
-            throw new Error(`Failed to load page: ${response.status()} ${response.statusText()}`);
+            throw new Error(`Failed to load page: ${status} ${statusText}`);
         }
 
         async function getColorImages(): Promise<string[]> {
@@ -204,9 +163,9 @@ export async function scrapeProductImages(productUrl: string, proxy?: ProxyConfi
             colorImages.forEach((url: string) => images.push({ url, color: 'default' }));
         } else {
             console.log('Color selector found - processing multiple colors');
-            await page.waitForSelector('.product-detail-color-selector__colors', { visible: true });
+            await page.waitForSelector('[data-qa-action="select-color"]', { visible: true });
 
-            const colorButtons = await page.$$('.product-detail-color-selector__colors .product-detail-color-selector__color-button');
+            const colorButtons = await page.$$('[data-qa-action="select-color"]');
             console.log(`Found ${colorButtons.length} color variants`);
 
             const selectedButton = await page.$('.product-detail-color-selector__color-button--is-selected');
@@ -224,14 +183,36 @@ export async function scrapeProductImages(productUrl: string, proxy?: ProxyConfi
             async function tryClickElement(element: ElementHandle<Element>, description: string): Promise<boolean> {
                 try {
                     console.log(`Attempting click on ${description}...`);
-                    await page.evaluate((el) => (el as HTMLElement).click(), element);
-                    await delay(500);
 
+                    // First try using the click() method
+                    await element.click({ delay: 100 });
+                    await delay(1500);
+
+                    // Check if click worked
                     const isSelected = await page.evaluate((el: Element) => {
                         return el.classList.contains('product-detail-color-selector__color-button--is-selected');
                     }, element);
 
-                    console.log(`Click result: ${isSelected ? 'Successfully selected' : 'Not selected'}`);
+                    if (!isSelected) {
+                        // If direct click didn't work, try clicking via JavaScript
+                        await page.evaluate(el => {
+                            (el as HTMLElement).click();
+                            // Also try dispatching a click event as backup
+                            const event = new MouseEvent('click', {
+                                bubbles: true,
+                                cancelable: true,
+                                view: window
+                            });
+                            el.dispatchEvent(event);
+                        }, element);
+                        await delay(1500);
+
+                        // Check again
+                        return await page.evaluate((el: Element) => {
+                            return el.classList.contains('product-detail-color-selector__color-button--is-selected');
+                        }, element);
+                    }
+
                     return isSelected;
                 } catch (error) {
                     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -257,30 +238,36 @@ export async function scrapeProductImages(productUrl: string, proxy?: ProxyConfi
 
                     console.log(`Processing color: ${colorName}`);
 
-                    let clickSuccess = await tryClickElement(button, 'button');
+                    let clickSuccess = await tryClickElement(button, `color button for ${colorName}`);
 
                     if (!clickSuccess) {
-                        const parentLi = await page.evaluateHandle(btn =>
-                            btn.closest('.product-detail-color-selector__color'), button);
+                        console.log(`Failed to select color ${colorName}, trying alternative methods...`);
 
-                        if (parentLi) {
-                            const parentElement = parentLi.asElement() as ElementHandle<Element>;
-                            if (parentElement) {
-                                clickSuccess = await tryClickElement(parentElement, 'li element');
+                        // Try clicking by using the data-qa-action attribute directly
+                        await page.evaluate((colorName) => {
+                            const buttons = Array.from(document.querySelectorAll('[data-qa-action="select-color"]'));
+                            const targetButton = buttons.find(btn => {
+                                const screenReaderText = btn.querySelector('.screen-reader-text');
+                                return screenReaderText?.textContent?.trim() === colorName;
+                            });
+                            if (targetButton) {
+                                (targetButton as HTMLElement).click();
                             }
-                            await parentLi.dispose();
-                        }
+                        }, colorName);
+
+                        await delay(1500);
+
+                        // Check if this alternative method worked
+                        clickSuccess = await page.evaluate((targetColor) => {
+                            const selectedBtn = document.querySelector('.product-detail-color-selector__color-button--is-selected');
+                            if (!selectedBtn) return false;
+                            const screenReaderText = selectedBtn.querySelector('.screen-reader-text');
+                            return screenReaderText?.textContent?.trim() === targetColor;
+                        }, colorName);
                     }
 
                     if (!clickSuccess) {
-                        const colorArea = await button.$('.product-detail-color-selector__color-area');
-                        if (colorArea) {
-                            clickSuccess = await tryClickElement(colorArea, 'color area div');
-                        }
-                    }
-
-                    if (!clickSuccess) {
-                        console.log(`Failed to select color ${colorName}, skipping...`);
+                        console.log(`Failed to select color ${colorName} after all attempts, skipping...`);
                         continue;
                     }
 
@@ -291,7 +278,7 @@ export async function scrapeProductImages(productUrl: string, proxy?: ProxyConfi
 
                     const colorImages = await getColorImages();
                     colorImages.forEach(url => images.push({ url, color: colorName }));
-                    await delay(1000); // Reduced from 10000 to 1000ms
+                    await delay(10000);
                 }
             }
         }
