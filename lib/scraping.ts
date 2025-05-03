@@ -1,6 +1,6 @@
 "use server"
 
-import puppeteer, { ElementHandle, Browser } from 'puppeteer';
+import puppeteer, { Browser } from 'puppeteer';
 
 interface ImageInfo {
     url: string;
@@ -54,6 +54,8 @@ export async function scrapeProductImages(productUrl: string, proxy?: ProxyConfi
     const delay = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
     const images: ImageInfo[] = [];
     const TIMEOUT = 30000; // 30 seconds
+    const CLICK_DELAY = 100; // Reduced from 1500ms
+    const COLOR_LOAD_DELAY = 400;
 
     console.log('Starting Zara image scraper...');
     const browser = await getBrowser();
@@ -77,29 +79,25 @@ export async function scrapeProductImages(productUrl: string, proxy?: ProxyConfi
         });
     }
 
-    await page.setUserAgent(USER_AGENT);
-
-    // Add randomized viewport size
-    await page.setViewport({
-        width: 1366 + Math.floor(Math.random() * 100),
-        height: 768 + Math.floor(Math.random() * 100),
-        deviceScaleFactor: 1,
-        hasTouch: false,
-        isLandscape: true,
-        isMobile: false
-    });
-
-    // Add additional browser fingerprint randomization
-    await page.evaluateOnNewDocument(() => {
-        // Override navigator properties
-        Object.defineProperty(navigator, 'webdriver', { get: () => false });
-        Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
-
-        // Add random plugins length
-        Object.defineProperty(navigator, 'plugins', {
-            get: () => new Array(Math.floor(Math.random() * 5) + 1).fill(null)
-        });
-    });
+    // Optimize page setup by combining operations
+    await Promise.all([
+        page.setUserAgent(USER_AGENT),
+        page.setViewport({
+            width: 1366 + Math.floor(Math.random() * 100),
+            height: 768 + Math.floor(Math.random() * 100),
+            deviceScaleFactor: 1,
+            hasTouch: false,
+            isLandscape: true,
+            isMobile: false
+        }),
+        page.evaluateOnNewDocument(() => {
+            Object.defineProperty(navigator, 'webdriver', { get: () => false });
+            Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+            Object.defineProperty(navigator, 'plugins', {
+                get: () => new Array(Math.floor(Math.random() * 5) + 1).fill(null)
+            });
+        })
+    ]);
 
     try {
         console.log(`Navigating to ${productUrl}`);
@@ -108,178 +106,104 @@ export async function scrapeProductImages(productUrl: string, proxy?: ProxyConfi
             timeout: TIMEOUT
         });
 
-        if (!response) {
-            throw new Error('No response received from page navigation');
+        if (!response || !response.ok()) {
+            throw new Error(`Failed to load page: ${response?.status()} ${response?.statusText()}`);
         }
 
-        const status = response.status();
-        const statusText = response.statusText();
-        console.log(`Response status: ${status} ${statusText}`);
-
-        if (!response.ok()) {
-            throw new Error(`Failed to load page: ${status} ${statusText}`);
-        }
-
+        // Optimized getColorImages function with better selector caching
         async function getColorImages(): Promise<string[]> {
             return await page.evaluate(() => {
-                const pictures = Array.from(document.querySelectorAll('.media-image'));
-                const urls: string[] = [];
-
-                pictures.forEach(picture => {
-                    const source = picture.querySelector('source[media="(min-width: 768px)"]');
-                    if (source) {
+                const pictures = document.querySelectorAll('.media-image');
+                return Array.from(pictures)
+                    .map(picture => {
+                        const source = picture.querySelector('source[media="(min-width: 768px)"]');
+                        if (!source) return null;
                         const srcset = source.getAttribute('srcset');
-                        if (srcset) {
-                            const allUrls = srcset.split(',')
-                                .map(src => {
-                                    const [url] = src.trim().split(' ');
-                                    return url.trim();
-                                })
-                                .filter(url => {
-                                    // Remove query parameters
-                                    const urlWithoutParams = url.split('?')[0];
-                                    // Check if the URL ends with e1.jpg specifically
-                                    return urlWithoutParams.endsWith('e1.jpg');
-                                });
-
-                            if (allUrls.length > 0) {
-                                urls.push(allUrls[0]);
-                            }
-                        }
-                    }
-                });
-                return urls;
+                        if (!srcset) return null;
+                        const urls = srcset.split(',')
+                            .map(src => src.trim().split(' ')[0].trim())
+                            .filter(url => url.split('?')[0].endsWith('e1.jpg'));
+                        return urls[0] || null;
+                    })
+                    .filter(url => url !== null) as string[];
             });
         }
 
-        // Check if color selector exists
-        const hasColorSelector = await page.evaluate(() => {
-            return !!document.querySelector('.product-detail-color-selector__colors');
+        // Optimized initial page analysis
+        const { hasColorSelector, colorButtons, selectedColorName } = await page.evaluate(() => {
+            const colorSelector = document.querySelector('.product-detail-color-selector__colors');
+            if (!colorSelector) {
+                return { hasColorSelector: false, colorButtons: [], selectedColorName: 'default' };
+            }
+
+            const buttons = Array.from(document.querySelectorAll('[data-qa-action="select-color"]'));
+            const selectedBtn = document.querySelector('.product-detail-color-selector__color-button--is-selected');
+            const selectedName = selectedBtn?.querySelector('.product-detail-color-selector__color-area .screen-reader-text')?.textContent?.trim() || 'default';
+
+            return {
+                hasColorSelector: true,
+                colorButtons: buttons.map(btn => ({
+                    isSelected: btn.classList.contains('product-detail-color-selector__color-button--is-selected'),
+                    colorName: btn.querySelector('.screen-reader-text')?.textContent?.trim() || `color-${Math.random()}`
+                })),
+                selectedColorName: selectedName
+            };
         });
 
         if (!hasColorSelector) {
             console.log('No color selector found - processing single color product');
             const colorImages = await getColorImages();
-            colorImages.forEach((url: string) => images.push({ url, color: 'default' }));
+            colorImages.forEach(url => images.push({ url, color: 'default' }));
         } else {
-            console.log('Color selector found - processing multiple colors');
-            await page.waitForSelector('[data-qa-action="select-color"]', { visible: true });
-
-            const colorButtons = await page.$$('[data-qa-action="select-color"]');
-            console.log(`Found ${colorButtons.length} color variants`);
-
-            const selectedButton = await page.$('.product-detail-color-selector__color-button--is-selected');
-            if (!selectedButton) {
-                throw new Error('No selected color button found');
-            }
-
-            const selectedColorName = await page.evaluate((btn: Element) => {
-                const screenReaderText = btn.querySelector('.product-detail-color-selector__color-area .screen-reader-text');
-                return screenReaderText?.textContent?.trim() || `color-${Math.random()}`;
-            }, selectedButton);
-
-            console.log(`Processing initially selected color: ${selectedColorName}`);
-
-            async function tryClickElement(element: ElementHandle<Element>, description: string): Promise<boolean> {
-                try {
-                    console.log(`Attempting click on ${description}...`);
-
-                    // First try using the click() method
-                    await element.click({ delay: 100 });
-                    await delay(1500);
-
-                    // Check if click worked
-                    const isSelected = await page.evaluate((el: Element) => {
-                        return el.classList.contains('product-detail-color-selector__color-button--is-selected');
-                    }, element);
-
-                    if (!isSelected) {
-                        // If direct click didn't work, try clicking via JavaScript
-                        await page.evaluate(el => {
-                            (el as HTMLElement).click();
-                            // Also try dispatching a click event as backup
-                            const event = new MouseEvent('click', {
-                                bubbles: true,
-                                cancelable: true,
-                                view: window
-                            });
-                            el.dispatchEvent(event);
-                        }, element);
-                        await delay(1500);
-
-                        // Check again
-                        return await page.evaluate((el: Element) => {
-                            return el.classList.contains('product-detail-color-selector__color-button--is-selected');
-                        }, element);
-                    }
-
-                    return isSelected;
-                } catch (error) {
-                    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                    console.log(`Click failed: ${errorMessage}`);
-                    return false;
-                }
-            }
+            console.log(`Processing ${colorButtons.length} color variants`);
 
             // Process initially selected color
             const initialImages = await getColorImages();
             initialImages.forEach(url => images.push({ url, color: selectedColorName }));
 
-            // Process other colors
-            for (const button of colorButtons) {
-                const isSelected = await page.evaluate((btn: Element) =>
-                    btn.classList.contains('product-detail-color-selector__color-button--is-selected'), button);
+            // Process other colors in parallel batches
+            const BATCH_SIZE = 4;
+            for (let i = 0; i < colorButtons.length; i += BATCH_SIZE) {
+                const batch = colorButtons.slice(i, i + BATCH_SIZE);
+                const batchPromises = batch.map(async (colorInfo) => {
+                    if (colorInfo.isSelected) return; // Skip already processed color
 
-                if (!isSelected) {
-                    const colorName = await page.evaluate((btn: Element) => {
-                        const screenReaderText = btn.querySelector('.product-detail-color-selector__color-area .screen-reader-text');
-                        return screenReaderText?.textContent?.trim() || `color-${Math.random()}`;
-                    }, button);
-
-                    console.log(`Processing color: ${colorName}`);
-
-                    let clickSuccess = await tryClickElement(button, `color button for ${colorName}`);
-
-                    if (!clickSuccess) {
-                        console.log(`Failed to select color ${colorName}, trying alternative methods...`);
-
-                        // Try clicking by using the data-qa-action attribute directly
+                    try {
+                        // Click color button using optimized selector
                         await page.evaluate((colorName) => {
                             const buttons = Array.from(document.querySelectorAll('[data-qa-action="select-color"]'));
-                            const targetButton = buttons.find(btn => {
-                                const screenReaderText = btn.querySelector('.screen-reader-text');
-                                return screenReaderText?.textContent?.trim() === colorName;
-                            });
+                            const targetButton = buttons.find(btn =>
+                                btn.querySelector('.screen-reader-text')?.textContent?.trim() === colorName
+                            );
                             if (targetButton) {
                                 (targetButton as HTMLElement).click();
+                                // Dispatch click event as backup
+                                targetButton.dispatchEvent(new MouseEvent('click', {
+                                    bubbles: true,
+                                    cancelable: true,
+                                    view: window
+                                }));
                             }
-                        }, colorName);
+                        }, colorInfo.colorName);
 
-                        await delay(1500);
+                        await delay(CLICK_DELAY);
 
-                        // Check if this alternative method worked
-                        clickSuccess = await page.evaluate((targetColor) => {
-                            const selectedBtn = document.querySelector('.product-detail-color-selector__color-button--is-selected');
-                            if (!selectedBtn) return false;
-                            const screenReaderText = selectedBtn.querySelector('.screen-reader-text');
-                            return screenReaderText?.textContent?.trim() === targetColor;
-                        }, colorName);
+                        // Wait for color change to complete
+                        await Promise.all([
+                            page.waitForSelector('.product-detail-color-selector__color-button--is-selected'),
+                            page.waitForSelector('.media-image__image', { visible: true })
+                        ]);
+
+                        const colorImages = await getColorImages();
+                        colorImages.forEach(url => images.push({ url, color: colorInfo.colorName }));
+
+                        await delay(COLOR_LOAD_DELAY);
+                    } catch (error) {
+                        console.error(`Failed to process color ${colorInfo.colorName}:`, error);
                     }
+                });
 
-                    if (!clickSuccess) {
-                        console.log(`Failed to select color ${colorName} after all attempts, skipping...`);
-                        continue;
-                    }
-
-                    await Promise.all([
-                        page.waitForSelector('.product-detail-color-selector__color-button--is-selected'),
-                        page.waitForSelector('.media-image__image', { visible: true })
-                    ]);
-
-                    const colorImages = await getColorImages();
-                    colorImages.forEach(url => images.push({ url, color: colorName }));
-                    await delay(10000);
-                }
+                await Promise.all(batchPromises);
             }
         }
 
@@ -288,7 +212,7 @@ export async function scrapeProductImages(productUrl: string, proxy?: ProxyConfi
         console.error('Scraping failed:', errorMessage);
         throw error;
     } finally {
-        await page.close(); // Close only the page, not the browser
+        await page.close();
     }
 
     console.log('Scraping completed successfully!');
