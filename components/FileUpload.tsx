@@ -6,6 +6,64 @@ import { Button } from "@/components/ui/button"
 import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 
+// Define an interface for the search results
+interface ProductSearchResult {
+  id?: string;
+  name?: string;
+  images?: string[];
+  price?: number;
+  brand?: string;
+  category?: string;
+  description?: string;
+  url?: string;
+  [key: string]: string | number | string[] | boolean | object | undefined;
+}
+
+// Function to upload image to server
+const uploadImageToServer = async (file: File): Promise<string> => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await fetch('/api/upload-image', {
+      method: 'POST',
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Upload failed with status ${response.status}`);
+    }
+    
+    const data = await response.json();
+    return data.fileUrl; // Return the URL of the uploaded file
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    throw error;
+  }
+};
+
+// Function to search products using server API
+const searchProductsByImage = async (imageUrl: string): Promise<ProductSearchResult[]> => {
+  try {
+    const response = await fetch('/api/product-search', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ imageUrl }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error searching products:', error);
+    throw error;
+  }
+};
+
 // Componente de diálogo para seleccionar o pegar imágenes
 function ImageDialog({
   isOpen,
@@ -227,6 +285,8 @@ export default function FileUpload() {
   const maxSizeMB = 2
   const maxSize = maxSizeMB * 1024 * 1024 // 2MB default
   const [showDialog, setShowDialog] = useState(false)
+  const [searchResults, setSearchResults] = useState<ProductSearchResult[] | null>(null)
+  const [isSearching, setIsSearching] = useState(false)
 
   const [
     { files, isDragging, errors },
@@ -245,10 +305,29 @@ export default function FileUpload() {
   })
   const previewUrl = files[0]?.preview || null
 
-  // Manejar la selección de archivos desde el diálogo personalizado
-  const handleFileSelect = (selectedFiles: FileList | File[]) => {
-    addFiles(selectedFiles)
-  }
+  // Handle file selection and API call
+  const handleFileSelect = async (selectedFiles: FileList | File[]) => {
+    addFiles(selectedFiles);
+    
+    if (selectedFiles.length > 0) {
+      const file = selectedFiles[0];
+      try {
+        setIsSearching(true);
+        
+        // Upload the image to our server
+        const imageUrl = await uploadImageToServer(file);
+        
+        // Search for products with the image URL
+        const products = await searchProductsByImage(imageUrl);
+        setSearchResults(products);
+      } catch (error) {
+        console.error("Error processing image:", error);
+        // Show error to user
+      } finally {
+        setIsSearching(false);
+      }
+    }
+  };
 
   return (
     <div className="flex flex-col gap-2">
@@ -310,7 +389,10 @@ export default function FileUpload() {
             <button
               type="button"
               className="focus-visible:border-ring focus-visible:ring-ring/50 z-50 flex size-8 cursor-pointer items-center justify-center rounded-full bg-black/60 text-white transition-[color,box-shadow] outline-none hover:bg-black/80 focus-visible:ring-[3px]"
-              onClick={() => removeFile(files[0]?.id)}
+              onClick={() => {
+                removeFile(files[0]?.id);
+                setSearchResults(null);
+              }}
               aria-label="Remove image"
             >
               <XIcon className="size-4" aria-hidden="true" />
@@ -319,7 +401,31 @@ export default function FileUpload() {
         )}
       </div>
 
-      {/* Diálogo para seleccionar o pegar imágenes */}
+      {/* Inditex API Search Status */}
+      {isSearching && (
+        <div className="mt-4 text-center">
+          <p className="text-sm">Searching for similar products...</p>
+        </div>
+      )}
+
+      {/* Inditex API Search Results */}
+      {searchResults && !isSearching && (
+        <div className="mt-4 border rounded-lg p-4">
+          <h3 className="text-lg font-medium mb-2">Search Results</h3>
+          {searchResults.length === 0 ? (
+            <p>No matching products found</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              {/* Display search results here */}
+              <pre className="text-xs overflow-auto max-h-60">
+                {JSON.stringify(searchResults, null, 2)}
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Image Dialog */}
       <ImageDialog
         isOpen={showDialog}
         onClose={() => setShowDialog(false)}
