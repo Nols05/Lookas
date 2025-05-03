@@ -6,7 +6,7 @@ import Image from 'next/image';
 
 export default function ImageSelector() {
   const [workoutType, setWorkoutType] = useState<string>('full_body');
-  
+
   // Imagen fija que siempre se mostrará
   const fixedImage = '/default-workout.jpg';
 
@@ -30,15 +30,15 @@ export default function ImageSelector() {
     <div className="max-w-3xl mx-auto p-5">
       <div className="flex flex-col md:flex-row justify-between gap-5 mb-5">
         <div className="flex flex-col gap-2">
-          <label 
+          <label
             htmlFor="workout-type"
             className="font-semibold"
           >
             Tipo de entrenamiento:
           </label>
-          <select 
-            id="workout-type" 
-            value={workoutType} 
+          <select
+            id="workout-type"
+            value={workoutType}
             onChange={handleWorkoutTypeChange}
             className="p-2 border rounded-md"
           >
@@ -49,7 +49,7 @@ export default function ImageSelector() {
         </div>
 
         <div className="flex flex-col gap-2">
-          <label 
+          <label
             htmlFor="image-upload"
             className="font-semibold"
           >
@@ -74,7 +74,7 @@ export default function ImageSelector() {
       </div>
 
       <div className="w-full flex justify-center items-center min-h-[400px] border-2 border-dashed border-gray-300 rounded-lg">
-        <Image 
+        <Image
           src={fixedImage}
           alt="Fixed workout image"
           width={400}
