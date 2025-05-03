@@ -214,7 +214,7 @@ export default function FileUpload() {
   }, [handlePaste])
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 max-w-2xl mx-auto">
       <div className="relative">
         {/* Drop area */}
         <div
@@ -235,14 +235,13 @@ export default function FileUpload() {
             aria-label="Upload image file"
           />
           {previewUrl ? (
-            <div className="absolute inset-0 flex items-center justify-center p-4">
+            <div className="flex items-center justify-center p-4">
               <Image
                 src={previewUrl}
                 alt={files[0]?.file?.name || "Uploaded image"}
                 width={320}
                 height={240}
-                className="mx-auto max-h-full rounded object-contain"
-                style={{ width: 'auto', height: 'auto', maxHeight: '100%' }}
+                className="mx-auto max-h-full max-w-full rounded object-contain"
               />
             </div>
           ) : (
