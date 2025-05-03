@@ -5,9 +5,6 @@ import { useFileUpload } from "@/hooks/use-file-upload"
 import { Button } from "@/components/ui/button"
 import { useState, useEffect, useRef, useCallback } from "react"
 import Image from "next/image"
-import { storage } from "@/lib/firebase"
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
-import { v4 as uuidv4 } from "uuid"
 
 // Define an interface for the search results
 interface ProductSearchResult {
@@ -22,36 +19,32 @@ interface ProductSearchResult {
   [key: string]: string | number | string[] | boolean | object | undefined;
 }
 
-// Function to upload image to Firebase Storage and get a download URL
-const uploadImageToFirebase = async (file: File): Promise<string> => {
+// Function to upload image to Cloudinary
+const uploadImage = async (file: File): Promise<string> => {
   try {
-    // Create a unique file name
-    const fileExtension = file.name.split('.').pop();
-    const fileName = `${uuidv4()}.${fileExtension}`;
-    
-    // Create a reference to the file location in Firebase Storage
-    const storageRef = ref(storage, `images/${fileName}`);
-    
-    // Upload the file
-    const snapshot = await uploadBytes(storageRef, file);
-    
-    // Get the download URL
-    const downloadURL = await getDownloadURL(snapshot.ref);
-    
-    return downloadURL;
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Upload failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.url;
   } catch (error) {
-    console.error('Error uploading to Firebase:', error);
+    console.error('Error uploading image:', error);
     throw error;
   }
 };
 
 // Function to search products using server API
-const searchProductsByImage = async (file: File): Promise<ProductSearchResult[]> => {
+const searchProductsByImage = async (imageUrl: string): Promise<ProductSearchResult[]> => {
   try {
-    // First upload the image to Firebase Storage
-    const imageUrl = await uploadImageToFirebase(file);
-    
-    // Then call the product search API with the image URL
     const response = await fetch('/api/product-search', {
       method: 'POST',
       headers: {
@@ -59,11 +52,11 @@ const searchProductsByImage = async (file: File): Promise<ProductSearchResult[]>
       },
       body: JSON.stringify({ imageUrl }),
     });
-    
+
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error('Error searching products:', error);
@@ -107,8 +100,12 @@ export default function FileUpload() {
       try {
         setIsSearching(true);
         const file = files[0].file as File;
-        // Search for products with the file directly
-        const products = await searchProductsByImage(file);
+
+        // First upload to Cloudinary
+        const cloudinaryUrl = await uploadImage(file);
+
+        // Then search with the Cloudinary URL
+        const products = await searchProductsByImage(cloudinaryUrl);
         setSearchResults(products);
       } catch (error) {
         console.error("Error processing image:", error);

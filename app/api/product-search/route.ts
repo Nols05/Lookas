@@ -17,27 +17,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get the form data
-    const formData = await request.formData();
-    const file = formData.get('file') as File;
+    // Get the request body
+    const body = await request.json();
+    const { imageUrl } = body;
 
     // Validate the request
-    if (!file) {
+    if (!imageUrl) {
       return NextResponse.json(
-        { error: 'Image file is required' },
+        { error: 'Image URL is required' },
         { status: 400 }
       );
     }
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      return NextResponse.json(
-        { error: 'Only image files are allowed' },
-        { status: 400 }
-      );
-    }
-
-    const apiUrl = `https://api.inditex.com/pubvsearch/products?image=https://static.zara.net/assets/public/4f21/2344/b7234241a320/0ba6973fa1c9/04387050711-p/04387050711-p.jpg?ts=1743523678871&w=1024`;
+    const apiUrl = `https://api.inditex.com/pubvsearch/products?image=${encodeURIComponent(imageUrl)}`;
 
     const response = await fetch(apiUrl, {
       headers: {
@@ -45,10 +37,6 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json'
       }
     });
-
-
-    console.log('Response:', data);
-
 
     // Check if the request was successful
     if (!response.ok) {

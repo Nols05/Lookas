@@ -1,5 +1,6 @@
+"use server"
 // Import the functions you need from the SDKs you need
-import { initializeApp, getApps } from "firebase/app";
+import { initializeApp, getApps, FirebaseApp } from "firebase/app";
 import { getStorage } from "firebase/storage";
 
 // Your web app's Firebase configuration from environment variables
@@ -14,10 +15,18 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+let app: FirebaseApp;
+let storage;
 
-// Firebase services
-export const storage = getStorage(app);
+if (!getApps().length) {
+  app = initializeApp(firebaseConfig);
+  storage = getStorage(app);
+} else {
+  app = getApps()[0];
+  storage = getStorage(app);
+}
+
+export { storage };
 
 // Analytics only works in browser environment
 let analytics = null;
