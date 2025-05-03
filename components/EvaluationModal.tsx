@@ -70,7 +70,7 @@ export default function EvaluationModal({ isOpen, onClose, imageUrl }: Evaluatio
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
             'x-rapidapi-host': 'fashion-analysis-ai-trend-insights-style-reviews.p.rapidapi.com',
-            'x-rapidapi-key': 'e74b3e8abfmshd437b375b1486fep15f172jsn8653ffba2102' // WARNING: Use environment variables
+            'x-rapidapi-key': '1ef6fb8153msh6bd32418a554c3cp1f698cjsn43c78b243376' // WARNING: Use environment variables
           }
         };
 
@@ -110,7 +110,7 @@ export default function EvaluationModal({ isOpen, onClose, imageUrl }: Evaluatio
     <div key={name} className="mb-3 pb-3 border-b border-gray-200 last:border-b-0">
       <h4 className="text-lg font-medium capitalize text-gray-700">{name}</h4>
       <p className="text-sm text-gray-600 mt-1">{criteria.comment}</p>
-      <p className="text-sm font-semibold text-indigo-600">Rating: {criteria.rating}/10</p>
+      <p className="text-sm font-semibold text-indigo-600">Rating: {criteria.rating}</p>
     </div>
   );
 
