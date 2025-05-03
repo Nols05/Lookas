@@ -79,7 +79,7 @@ export function ProductGrid({ products: initialProducts }: ProductGridProps) {
                     <div className="p-4">
                         {product.scrapedImages && product.scrapedImages.length > 0 ? (
                             <div>
-                                <h4 className="text-sm font-medium mb-2">Resultado {product.id}:</h4>
+
                                 <div className="flex flex-row gap-3 overflow-x-auto pb-2">
                                     {product.scrapedImages.map((image, index) => (
                                         <div
