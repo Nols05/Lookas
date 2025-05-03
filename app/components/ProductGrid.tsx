@@ -63,17 +63,17 @@ export function ProductGrid({ products: initialProducts }: ProductGridProps) {
     }, [initialProducts]);
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="flex flex-col gap-4">
             {products.map((product) => (
-                <Card key={product.id} className="overflow-hidden">
+                <Card key={product.id} className="overflow-hidden w-full">
                     <a href={product.link} target="_blank" rel="noopener noreferrer" className="block">
                         <div className="p-4">
                             {product.scrapedImages && product.scrapedImages.length > 0 ? (
                                 <div>
                                     <h4 className="text-sm font-medium mb-2">Resultado {product.id}:</h4>
-                                    <div className="grid grid-cols-2 gap-2">
+                                    <div className="flex flex-col gap-2">
                                         {product.scrapedImages.map((image, index) => (
-                                            <div key={index} className="relative aspect-square">
+                                            <div key={index} className="relative aspect-square w-full">
                                                 <Image
                                                     src={image.url}
                                                     alt={`${product.name} - ${image.color}`}
@@ -88,7 +88,7 @@ export function ProductGrid({ products: initialProducts }: ProductGridProps) {
                                     </div>
                                 </div>
                             ) : product.imageUrl ? (
-                                <div className="relative aspect-square">
+                                <div className="relative aspect-square w-full">
                                     <Image
                                         src={product.imageUrl}
                                         alt={product.name}
@@ -97,7 +97,7 @@ export function ProductGrid({ products: initialProducts }: ProductGridProps) {
                                     />
                                 </div>
                             ) : (
-                                <div className="relative aspect-square bg-gray-200 flex items-center justify-center">
+                                <div className="relative aspect-square w-full bg-gray-200 flex items-center justify-center">
                                     <span className="text-gray-500 text-xs">No Image</span>
                                 </div>
                             )}

@@ -1,4 +1,5 @@
 "use server"
+
 import puppeteer, { ElementHandle } from 'puppeteer';
 
 
@@ -54,8 +55,8 @@ export async function scrapeProductImages(productUrl: string): Promise<ImageInfo
                                 .filter(url => {
                                     // Remove query parameters
                                     const urlWithoutParams = url.split('?')[0];
-                                    // Check if the URL ends with e1.jpg, e2.jpg, etc.
-                                    return /e\d+\.jpg$/.test(urlWithoutParams);
+                                    // Check if the URL ends with e1.jpg specifically
+                                    return urlWithoutParams.endsWith('e1.jpg');
                                 });
 
                             if (allUrls.length > 0) {
