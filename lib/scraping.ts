@@ -54,8 +54,8 @@ export async function scrapeProductImages(productUrl: string, proxy?: ProxyConfi
     const delay = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
     const images: ImageInfo[] = [];
     const TIMEOUT = 30000; // 30 seconds
-    const CLICK_DELAY = 250; // Reduced from 1500ms
-    const COLOR_LOAD_DELAY = 750;
+    const CLICK_DELAY = 100; // Reduced from 1500ms
+    const COLOR_LOAD_DELAY = 400;
 
     console.log('Starting Zara image scraper...');
     const browser = await getBrowser();
@@ -162,7 +162,7 @@ export async function scrapeProductImages(productUrl: string, proxy?: ProxyConfi
             initialImages.forEach(url => images.push({ url, color: selectedColorName }));
 
             // Process other colors in parallel batches
-            const BATCH_SIZE = 3;
+            const BATCH_SIZE = 4;
             for (let i = 0; i < colorButtons.length; i += BATCH_SIZE) {
                 const batch = colorButtons.slice(i, i + BATCH_SIZE);
                 const batchPromises = batch.map(async (colorInfo) => {

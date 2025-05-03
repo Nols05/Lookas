@@ -36,7 +36,7 @@ export function ProductGrid({ products: initialProducts }: ProductGridProps) {
     const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const processingCycleRef = useRef<string | null>(null);
-    const BATCH_SIZE = 3; // Process 3 products in parallel
+    const BATCH_SIZE = 4; // Process 4 products in parallel
 
     const handleTryOn = (product: Product, variantIndex: number) => {
         const imageUrl = product.scrapedImages?.[variantIndex]?.url;
