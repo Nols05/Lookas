@@ -26,8 +26,6 @@ interface ProductGridProps {
     products: Product[];
 }
 
-
-
 export function ProductGrid({ products: initialProducts }: ProductGridProps) {
     const [products, setProducts] = useState<Product[]>(initialProducts);
 
@@ -45,7 +43,6 @@ export function ProductGrid({ products: initialProducts }: ProductGridProps) {
                         if (scrapedImages.length > 0) {
                             return {
                                 ...product,
-                                imageUrl: scrapedImages[0].url,
                                 scrapedImages: scrapedImages
                             };
                         }
@@ -71,8 +68,27 @@ export function ProductGrid({ products: initialProducts }: ProductGridProps) {
                 <Card key={product.id} className="overflow-hidden">
                     <a href={product.link} target="_blank" rel="noopener noreferrer" className="block">
                         <div className="p-4">
-                            {product.imageUrl ? (
-                                <div className="relative aspect-square bg-gray-100">
+                            {product.scrapedImages && product.scrapedImages.length > 0 ? (
+                                <div>
+                                    <h4 className="text-sm font-medium mb-2">Resultado {product.id}:</h4>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {product.scrapedImages.map((image, index) => (
+                                            <div key={index} className="relative aspect-square">
+                                                <Image
+                                                    src={image.url}
+                                                    alt={`${product.name} - ${image.color}`}
+                                                    fill
+                                                    className="object-cover rounded-md"
+                                                />
+                                                <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 text-center">
+                                                    {image.color}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : product.imageUrl ? (
+                                <div className="relative aspect-square">
                                     <Image
                                         src={product.imageUrl}
                                         alt={product.name}

@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const apiUrl = `${INDITEX_API_URL}?image=${encodeURIComponent(imageUrl)}`;
+    const apiUrl = `${INDITEX_API_URL}?perPage=3&image=${encodeURIComponent(imageUrl)}`;
 
     const response = await fetch(apiUrl, {
       headers: {

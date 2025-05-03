@@ -48,16 +48,18 @@ export async function scrapeProductImages(productUrl: string): Promise<ImageInfo
                         if (srcset) {
                             const allUrls = srcset.split(',')
                                 .map(src => {
-                                    const [url, width] = src.trim().split(' ');
-                                    return {
-                                        url: url.trim(),
-                                        width: parseInt(width?.replace('w', '') || '0')
-                                    };
+                                    const [url] = src.trim().split(' ');
+                                    return url.trim();
                                 })
-                                .sort((a, b) => b.width - a.width);
+                                .filter(url => {
+                                    // Remove query parameters
+                                    const urlWithoutParams = url.split('?')[0];
+                                    // Check if the URL ends with e1.jpg, e2.jpg, etc.
+                                    return /e\d+\.jpg$/.test(urlWithoutParams);
+                                });
 
                             if (allUrls.length > 0) {
-                                urls.push(allUrls[0].url);
+                                urls.push(allUrls[0]);
                             }
                         }
                     }
