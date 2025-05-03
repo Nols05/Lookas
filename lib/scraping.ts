@@ -54,8 +54,8 @@ export async function scrapeProductImages(productUrl: string, proxy?: ProxyConfi
     const delay = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
     const images: ImageInfo[] = [];
     const TIMEOUT = 30000; // 30 seconds
-    const CLICK_DELAY = 500; // Reduced from 1500ms
-    const COLOR_LOAD_DELAY = 2000; // Reduced from 10000ms
+    const CLICK_DELAY = 250; // Reduced from 1500ms
+    const COLOR_LOAD_DELAY = 750;
 
     console.log('Starting Zara image scraper...');
     const browser = await getBrowser();

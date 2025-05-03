@@ -25,7 +25,7 @@ interface ResultResponse {
   data: {
     image: string
   }
-  error_code: numbers
+  error_code: number
   task_status: number
 }
 

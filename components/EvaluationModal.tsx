@@ -132,7 +132,7 @@ export default function EvaluationModal({ isOpen, onClose, imageUrl }: Evaluatio
         <div className="p-6">
           {loading && (
             <div className="flex justify-center items-center py-8">
-              <Loader2 className="w-8 h-8 mr-2 animate-spin text-indigo-600" />
+              <Loader2 className="w-8 h-8 mr-2 animate-spin text-black" />
               <p className="text-lg text-gray-600">Evaluating...</p>
             </div>
           )}
