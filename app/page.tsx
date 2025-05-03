@@ -1,4 +1,4 @@
-import ImageSelector from '@/components/ImageSelector';
+import FileUpload from '@/components/FileUpload';
 
 export default function Home() {
   return (
@@ -6,7 +6,7 @@ export default function Home() {
       <h1 className="text-3xl font-bold text-center mb-8">
         Selector de Ejercicios
       </h1>
-      <ImageSelector />
+      <FileUpload />
     </main>
   );
 }
