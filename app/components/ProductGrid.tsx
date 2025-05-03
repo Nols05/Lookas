@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { Card } from '@/components/ui/card';
 import { scrapeProductImages } from '@/lib/scraping';
 import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
 
 interface Product {
     id: string;
@@ -30,6 +31,14 @@ interface ProductGridProps {
 export function ProductGrid({ products: initialProducts }: ProductGridProps) {
     const [products, setProducts] = useState<Product[]>(initialProducts);
     const [selectedVariants, setSelectedVariants] = useState<Record<string, number>>({});
+    const router = useRouter();
+
+    const handleTryOn = (product: Product, variantIndex: number) => {
+        const imageUrl = product.scrapedImages?.[variantIndex]?.url;
+        if (imageUrl) {
+            router.push(`/try-on?imageUrl=${encodeURIComponent(imageUrl)}`);
+        }
+    };
 
     useEffect(() => {
         setProducts(initialProducts);
@@ -138,6 +147,7 @@ export function ProductGrid({ products: initialProducts }: ProductGridProps) {
                                 <Button
                                     className="flex-1 bg-black text-white hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed"
                                     disabled={!product.scrapedImages || selectedVariants[product.id] === undefined}
+                                    onClick={() => selectedVariants[product.id] !== undefined && handleTryOn(product, selectedVariants[product.id])}
                                 >
                                     {selectedVariants[product.id] !== undefined
                                         ? `Probar ${product.scrapedImages?.[selectedVariants[product.id]]?.color}`

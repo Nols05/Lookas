@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
 
       },
     ],
+    domains: ['ailab-result-rapidapi.oss-accelerate.aliyuncs.com'],
   },
 };
 
