@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     // Call the Inditex API with query parameter
     const encodedImageUrl = encodeURIComponent(imageUrl);
-    const apiUrl = `https://api.inditex.com/pubvsearch/products?image=${encodedImageUrl}`;
+    const apiUrl = `https://api.inditex.com/pubvsearch/products?image=https://static.zara.net/assets/public/4f21/2344/b7234241a320/0ba6973fa1c9/04387050711-p/04387050711-p.jpg?ts=1743523678871&w=1024`;
 
     const response = await fetch(apiUrl, {
       headers: {
