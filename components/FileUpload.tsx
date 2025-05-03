@@ -5,6 +5,9 @@ import { useFileUpload } from "@/hooks/use-file-upload"
 import { Button } from "@/components/ui/button"
 import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
+import { storage } from "@/lib/firebase"
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
+import { v4 as uuidv4 } from "uuid"
 
 // Define an interface for the search results
 interface ProductSearchResult {
@@ -19,21 +22,48 @@ interface ProductSearchResult {
   [key: string]: string | number | string[] | boolean | object | undefined;
 }
 
+// Function to upload image to Firebase Storage and get a download URL
+const uploadImageToFirebase = async (file: File): Promise<string> => {
+  try {
+    // Create a unique file name
+    const fileExtension = file.name.split('.').pop();
+    const fileName = `${uuidv4()}.${fileExtension}`;
+    
+    // Create a reference to the file location in Firebase Storage
+    const storageRef = ref(storage, `images/${fileName}`);
+    
+    // Upload the file
+    const snapshot = await uploadBytes(storageRef, file);
+    
+    // Get the download URL
+    const downloadURL = await getDownloadURL(snapshot.ref);
+    
+    return downloadURL;
+  } catch (error) {
+    console.error('Error uploading to Firebase:', error);
+    throw error;
+  }
+};
+
 // Function to search products using server API
 const searchProductsByImage = async (file: File): Promise<ProductSearchResult[]> => {
   try {
-    const formData = new FormData();
-    formData.append('file', file);
-
+    // First upload the image to Firebase Storage
+    const imageUrl = await uploadImageToFirebase(file);
+    
+    // Then call the product search API with the image URL
     const response = await fetch('/api/product-search', {
       method: 'POST',
-      body: formData,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ imageUrl }),
     });
-
+    
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
     }
-
+    
     return await response.json();
   } catch (error) {
     console.error('Error searching products:', error);
