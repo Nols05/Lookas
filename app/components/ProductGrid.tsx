@@ -117,9 +117,9 @@ export function ProductGrid({ products: initialProducts }: ProductGridProps) {
             {isProcessing ? (
                 <ProductGridSkeleton />
             ) : (
-                <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-2 gap-8 w-4xl">
                     {products.map((product) => (
-                        <Card key={product.id} className="overflow-hidden w-full">
+                        <Card key={product.id} className="overflow-hidden">
                             <div className="p-4">
                                 {product.scrapedImages && product.scrapedImages.length > 0 ? (
                                     <div>
@@ -179,7 +179,7 @@ export function ProductGrid({ products: initialProducts }: ProductGridProps) {
                                     </p>
                                     <div className="flex gap-2 mt-4">
                                         <Button
-                                            className="flex-1 bg-black text-white hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                                            className="flex-1 bg-black text-white hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed cursor-none"
                                             disabled={!product.scrapedImages || selectedVariants[product.id] === undefined}
                                             onClick={() => selectedVariants[product.id] !== undefined && handleTryOn(product, selectedVariants[product.id])}
                                         >
@@ -188,7 +188,7 @@ export function ProductGrid({ products: initialProducts }: ProductGridProps) {
                                                 : 'Selecciona un color'
                                             }
                                         </Button>
-                                        <Button variant="outline" className="flex-1" asChild>
+                                        <Button variant="outline" className="flex-1 cursor-none" asChild>
                                             <a href={product.link} target="_blank" rel="noopener noreferrer">
                                                 Ver en tienda
                                             </a>

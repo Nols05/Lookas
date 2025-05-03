@@ -3,9 +3,17 @@
 import type React from "react"
 import { useState } from "react"
 import Image from "next/image"
-import Modal from "./Modal"
 import { Loader2 } from "lucide-react"
 import EvaluationModal from "./EvaluationModal"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 interface TaskResponse {
   error_code: number
@@ -35,17 +43,8 @@ export default function ImageSelector({ clothesImageUrl, isOpen, onClose }: Imag
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null)
   const [isEvaluationModalOpen, setIsEvaluationModalOpen] = useState(false)
 
-  const handleWorkoutTypeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setWorkoutType(event.target.value)
-  }
-
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      setSelectedFile(file)
-      setSelectedFileName(file.name)
-      console.log("Archivo seleccionado:", file.name)
-    }
+  const handleWorkoutTypeChange = (value: string) => {
+    setWorkoutType(value)
   }
 
   const checkTaskResult = async (taskId: string) => {
@@ -170,47 +169,50 @@ export default function ImageSelector({ clothesImageUrl, isOpen, onClose }: Imag
     onClose()
   }
 
-  const handleEvaluateClick = () => {
-    if (resultImage) {
-      setIsEvaluationModalOpen(true)
-    }
-  }
-
   return (
     <>
-      <Modal isOpen={isOpen} onClose={handleClose}>
-        <div className="max-w-4xl mx-auto px-4">
-          <h2 className="text-3xl font-light tracking-tight uppercase mb-8">Pruébate la ropa</h2>
+      <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+        <DialogContent className="max-w-[90vw] w-full bg-white sm:max-w-[80vw] lg:max-w-[1200px] h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-3xl font-light tracking-tight uppercase">
+              Try on the clothes
+            </DialogTitle>
+          </DialogHeader>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 p-6">
             <div className="space-y-6">
               <div>
-                <label htmlFor="workout-type" className="block text-sm uppercase tracking-wider mb-2">
+                <label className="block text-sm uppercase tracking-wider mb-2">
                   Garment Type
                 </label>
-                <select
-                  id="workout-type"
-                  value={workoutType}
-                  onChange={handleWorkoutTypeChange}
-                  className="w-full p-3 border border-gray-300 bg-transparent focus:outline-none"
-                >
-                  <option value="upper_body">Upper Body</option>
-                  <option value="lower_body">Lower Body</option>
-                  <option value="full_body">Full Body</option>
-                </select>
+                <Select value={workoutType} onValueChange={handleWorkoutTypeChange}>
+                  <SelectTrigger className="w-full bg-white border-gray-200 shadow-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white">
+                    <SelectItem value="upper_body">Upper Body</SelectItem>
+                    <SelectItem value="lower_body">Lower Body</SelectItem>
+                    <SelectItem value="full_body">Full Body</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>
-                <label htmlFor="image-upload" className="block text-sm uppercase tracking-wider mb-2">
+                <label className="block text-sm uppercase tracking-wider mb-2">
                   Select Person Image
                 </label>
                 <div className="flex flex-col gap-4">
-                  <div className="relative border border-gray-300 p-3">
+                  <div className="relative border border-gray-200 shadow-sm bg-white p-3">
                     <input
                       type="file"
-                      id="image-upload"
                       accept="image/*"
-                      onChange={handleImageChange}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          setSelectedFile(file)
+                          setSelectedFileName(file.name)
+                        }
+                      }}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     />
                     <div className="text-center text-sm uppercase tracking-wider">
@@ -218,14 +220,13 @@ export default function ImageSelector({ clothesImageUrl, isOpen, onClose }: Imag
                     </div>
                   </div>
 
-                  <button
+                  <Button
                     onClick={handleGenerate}
                     disabled={isLoading || !selectedFile}
-                    className={`
-                      ${isLoading ? "bg-gray-200 text-gray-500" : "bg-black text-white hover:bg-black/90"}
-                      py-3 px-6 transition-colors uppercase text-sm tracking-wider
-                      flex items-center justify-center
-                    `}
+                    className={cn(
+                      "w-full bg-black hover:bg-black/90 text-white",
+                      isLoading && "bg-gray-200 text-gray-500"
+                    )}
                   >
                     {isLoading ? (
                       <>
@@ -235,28 +236,25 @@ export default function ImageSelector({ clothesImageUrl, isOpen, onClose }: Imag
                     ) : (
                       "Generate"
                     )}
-                  </button>
+                  </Button>
 
-                  <button
-                    onClick={handleEvaluateClick}
+                  <Button
+                    onClick={() => resultImage && setIsEvaluationModalOpen(true)}
                     disabled={isLoading || !resultImage}
-                    className={`
-                      ${isLoading || !resultImage ? "bg-gray-200 text-gray-500 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"}
-                      py-3 px-6 transition-colors uppercase text-sm tracking-wider
-                      flex items-center justify-center mt-2
-                    `}
+                    variant="outline"
+                    className="w-full shadow-sm hover:shadow-md transition-shadow"
                   >
                     Evaluate
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
 
             <div className="w-full">
-              <div className="border border-gray-300 aspect-square w-full flex items-center justify-center">
+              <div className="border border-gray-200 shadow-sm bg-white aspect-square w-full flex items-center justify-center">
                 {resultImage ? (
                   <Image
-                    src={resultImage || "/placeholder.svg"}
+                    src={resultImage}
                     alt="Result image"
                     width={400}
                     height={400}
@@ -270,8 +268,8 @@ export default function ImageSelector({ clothesImageUrl, isOpen, onClose }: Imag
               </div>
             </div>
           </div>
-        </div>
-      </Modal>
+        </DialogContent>
+      </Dialog>
 
       <EvaluationModal
         isOpen={isEvaluationModalOpen}

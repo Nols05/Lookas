@@ -2,7 +2,7 @@ import { Card } from '@/components/ui/card';
 
 export function ProductSkeleton() {
     return (
-        <Card className="overflow-hidden w-full animate-pulse">
+        <Card className="overflow-hidden w-full animate-pulse max-w-2xl ml-26 ">
             <div className="p-4">
                 <div className="flex flex-row gap-3 overflow-x-auto pb-2">
                     {/* Multiple image placeholders */}
@@ -41,7 +41,7 @@ export function ProductSkeleton() {
 export function ProductGridSkeleton() {
     return (
         <div className="flex flex-col gap-4">
-            {[1, 2, 3].map((index) => (
+            {[1, 2].map((index) => (
                 <ProductSkeleton key={index} />
             ))}
         </div>

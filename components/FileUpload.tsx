@@ -214,116 +214,131 @@ export default function FileUpload() {
   }, [handlePaste])
 
   return (
-    <div className="flex flex-col gap-2 max-w-2xl mx-auto">
-      <div className="relative">
-        {/* Drop area */}
-        <div
-          ref={pasteAreaRef}
-          onDragEnter={handleDragEnter}
-          onDragLeave={handleDragLeave}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-          onPaste={handleReactPaste}
-          data-dragging={isDragging || undefined}
-          className={`border-input data-[dragging=true]:bg-accent/50 has-[input:focus]:border-ring has-[input:focus]:ring-ring/50 relative flex flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed p-4 transition-colors has-[input:focus]:ring-[3px] ${!previewUrl ? 'min-h-52' : ''
-            }`}
-          tabIndex={0}
-        >
-          <input
-            {...getInputProps()}
-            ref={fileInputRef}
-            className="sr-only"
-            aria-label="Upload image file"
-          />
-          {previewUrl ? (
-            <div className="p-4 mx-auto">
-              <Image
-                src={previewUrl}
-                alt={files[0]?.file?.name || "Uploaded image"}
-                width={320}
-                height={240}
-                className="object-contain max-h-40 max-w-sm"
-              />
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center px-4 py-3 text-center">
-              <div
-                className="bg-background mb-2 flex size-11 shrink-0 items-center justify-center border"
-                aria-hidden="true"
-              >
-                <ImageIcon className="size-4 opacity-60" />
-              </div>
-              <p className="mb-1.5 text-sm font-medium">Drop your image here</p>
+    <div className="flex flex-col gap-2">
 
-              <p className="text-muted-foreground text-xs mt-1">
-                Paste an image (Ctrl+V)
 
-              </p>
-              <Button
-                variant="outline"
-                className="mt-4 cursor-none"
-                onClick={openFilePicker}
-              >
-                <UploadIcon
-                  className="-ms-1 size-4 opacity-60"
-                  aria-hidden="true"
+      <div className="mx-auto">
+
+        <div className="relative w-lg mr-16">
+          {/* Drop area */}
+          <div
+            ref={pasteAreaRef}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            onPaste={handleReactPaste}
+            data-dragging={isDragging || undefined}
+            className={`border-input data-[dragging=true]:bg-accent/50 has-[input:focus]:border-ring has-[input:focus]:ring-ring/50 relative flex flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed  p-4 transition-colors has-[input:focus]:ring-[3px] ${!previewUrl ? 'min-h-52' : ''}`}
+            tabIndex={0}
+          >
+            <input
+              {...getInputProps()}
+              ref={fileInputRef}
+              className="sr-only"
+              aria-label="Upload image file"
+            />
+            {previewUrl ? (
+              <div className="p-4 mx-auto">
+                <Image
+                  src={previewUrl}
+                  alt={files[0]?.file?.name || "Uploaded image"}
+                  width={320}
+                  height={240}
+                  className="object-contain max-h-40 max-w-sm"
                 />
-                Select image
-              </Button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center px-4 py-3 text-center">
+                <div
+                  className="bg-background mb-2 flex size-11 shrink-0 items-center justify-center border"
+                  aria-hidden="true"
+                >
+                  <ImageIcon className="size-4 opacity-60" />
+                </div>
+                <p className="mb-1.5 text-sm font-medium">Drop your image here</p>
+
+                <p className="text-muted-foreground text-xs mt-1">
+                  Paste an image (Ctrl+V)
+                </p>
+                <Button
+                  variant="outline"
+                  className="mt-4 cursor-none"
+                  onClick={openFilePicker}
+                >
+                  <UploadIcon
+                    className="-ms-1 size-4 opacity-60"
+                    aria-hidden="true"
+                  />
+                  Select image
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {previewUrl && (
+            <div className="absolute top-4 right-4">
+              <button
+                type="button"
+                className="focus-visible:border-ring focus-visible:ring-ring/50 z-50 flex size-8  items-center justify-center bg-black/60 text-white transition-[color,box-shadow] outline-none hover:bg-black/80 focus-visible:ring-[3px] cursor-none"
+                onClick={() => {
+                  removeFile(files[0]?.id);
+                  setSearchResults(null);
+                }}
+                aria-label="Remove image"
+              >
+                <XIcon className="size-4" aria-hidden="true" />
+              </button>
             </div>
           )}
         </div>
+      </div>
 
-        {previewUrl && (
-          <div className="absolute top-4 right-4">
-            <button
-              type="button"
-              className="focus-visible:border-ring focus-visible:ring-ring/50 z-50 flex size-8 cursor-pointer items-center justify-center bg-black/60 text-white transition-[color,box-shadow] outline-none hover:bg-black/80 focus-visible:ring-[3px]"
-              onClick={() => {
-                removeFile(files[0]?.id);
-                setSearchResults(null);
-              }}
-              aria-label="Remove image"
-            >
-              <XIcon className="size-4" aria-hidden="true" />
-            </button>
-          </div>
-        )}
-
+      {/* Container for the steps with relative positioning */}
+      <div className="relative min-h-[200px] mt-4">
         {/* Process Image Button */}
-        {previewUrl && (
+        <div className={`absolute w-full transition-all duration-300 ease-in-out ${previewUrl && !isProcessing && !searchResults
+          ? 'opacity-100 translate-y-0 z-10'
+          : 'opacity-0 -translate-y-4 pointer-events-none z-0'
+          }`}>
           <Button
-            className="mt-4 w-full hover:shadow-lg border-neutral-100 border cursor-none"
+            className="w-lg mr-16 hover:shadow-lg border-neutral-100 border cursor-none"
             onClick={handleProcessImage}
             disabled={isProcessing}
           >
             {isProcessing ? "Processing..." : "Process Image"}
           </Button>
-        )}
+        </div>
+
+        {/* Inditex API Search Status */}
+        <div className={`absolute w-full transition-all duration-300 ease-in-out ${isProcessing
+          ? 'opacity-100 translate-y-0 z-10'
+          : 'opacity-0 -translate-y-4 pointer-events-none z-0'
+          }`}>
+          <div className="flex items-center justify-center gap-2 mr-16">
+            <Loader2 className="size-4 animate-spin" />
+            <p className="text-sm">Searching for similar products...</p>
+          </div>
+        </div>
+
+        {/* Inditex API Search Results */}
+        <div className={`absolute w-full transition-all duration-500 ease-in-out ${searchResults && !isProcessing
+          ? 'opacity-100 translate-y-0 z-10'
+          : 'opacity-0 -translate-y-4 pointer-events-none z-0'
+          }`}>
+          <div className="w-full">
+            <h3 className="text-lg font-medium mb-4 mr-10">Search Results</h3>
+            {searchResults?.length === 0 ? (
+              <p>No matching products found</p>
+            ) : (
+              <ProductGrid products={(searchResults || []).map(product => ({
+                ...product,
+                imageUrl: product.images?.[0]
+              }))} />
+            )}
+          </div>
+        </div>
       </div>
-
-      {/* Inditex API Search Status */}
-      {isProcessing && (
-        <div className="mt-4 flex items-center justify-center gap-2">
-          <Loader2 className="size-4 animate-spin" />
-          <p className="text-sm">Searching for similar products...</p>
-        </div>
-      )}
-
-      {/* Inditex API Search Results */}
-      {searchResults && (
-        <div className="mt-4">
-          <h3 className="text-lg font-medium mb-4">Search Results</h3>
-          {searchResults.length === 0 ? (
-            <p>No matching products found</p>
-          ) : (
-            <ProductGrid products={searchResults.map(product => ({
-              ...product,
-              imageUrl: product.images?.[0] // Use the first image from the results
-            }))} />
-          )}
-        </div>
-      )}
 
       {errors.length > 0 && (
         <div
@@ -334,9 +349,6 @@ export default function FileUpload() {
           <span>{errors[0]}</span>
         </div>
       )}
-
-
-
     </div>
   )
 }
