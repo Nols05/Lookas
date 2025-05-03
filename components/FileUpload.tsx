@@ -7,14 +7,14 @@ import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 
 // Componente de diálogo para seleccionar o pegar imágenes
-function ImageDialog({ 
-  isOpen, 
-  onClose, 
-  onFileSelect, 
-  maxSizeMB 
-}: { 
-  isOpen: boolean; 
-  onClose: () => void; 
+function ImageDialog({
+  isOpen,
+  onClose,
+  onFileSelect,
+  maxSizeMB
+}: {
+  isOpen: boolean;
+  onClose: () => void;
   onFileSelect: (files: FileList | File[]) => void;
   maxSizeMB: number;
 }) {
@@ -28,15 +28,15 @@ function ImageDialog({
   const handlePaste = (e: ClipboardEvent) => {
     e.preventDefault()
     console.log("Paste event detected")
-    
+
     if (!e.clipboardData) return
-    
+
     const items = e.clipboardData.items
-    
+
     for (let i = 0; i < items.length; i++) {
       const item = items[i]
       console.log("Pasted item type:", item.type)
-      
+
       if (item.type.indexOf('image') !== -1) {
         const file = item.getAsFile()
         if (file) {
@@ -60,15 +60,15 @@ function ImageDialog({
   const handleReactPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
     e.preventDefault()
     console.log("React paste event detected")
-    
+
     if (!e.clipboardData) return
-    
+
     const items = e.clipboardData.items
-    
+
     for (let i = 0; i < items.length; i++) {
       const item = items[i]
       console.log("Pasted item type (React):", item.type)
-      
+
       if (item.type.indexOf('image') !== -1) {
         const file = item.getAsFile()
         if (file) {
@@ -115,13 +115,13 @@ function ImageDialog({
 
     // Add paste event to document
     document.addEventListener('paste', handlePaste)
-    
+
     // Also try with specific area
     const pasteArea = pasteAreaRef.current
     if (pasteArea) {
       pasteArea.addEventListener('paste', handlePaste)
     }
-    
+
     // Clean up events when component unmounts or closes
     return () => {
       document.removeEventListener('paste', handlePaste)
@@ -150,15 +150,15 @@ function ImageDialog({
   if (!isOpen) return null
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
       ref={dialogRef}
     >
       <div className="bg-background rounded-lg p-6 w-full max-w-md shadow-xl">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-medium">Select Image</h3>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="rounded-full p-1 hover:bg-accent"
             aria-label="Close"
           >
@@ -166,7 +166,7 @@ function ImageDialog({
           </button>
         </div>
 
-        <div 
+        <div
           ref={pasteAreaRef}
           tabIndex={0}
           onPaste={handleReactPaste}
@@ -174,9 +174,9 @@ function ImageDialog({
         >
           {pastedImage ? (
             <div className="space-y-4">
-              <Image 
-                src={pastedImage} 
-                alt="Pasted image" 
+              <Image
+                src={pastedImage}
+                alt="Pasted image"
                 width={320}
                 height={240}
                 className="max-h-52 mx-auto object-contain rounded"
@@ -202,8 +202,8 @@ function ImageDialog({
 
         <div className="text-center space-y-2">
           <p className="text-sm">Or select a file</p>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={openFilePicker}
             className="w-full"
           >
