@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     });
 
 
-    console.log('Response:', data);
+    console.log('Response:', response);
 
 
     // Check if the request was successful
