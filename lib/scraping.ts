@@ -36,23 +36,6 @@ export async function scrapeProductImages(productUrl: string): Promise<ImageInfo
             throw new Error(`Failed to load page: ${response.status()} ${response.statusText()}`);
         }
 
-        await page.waitForSelector('.product-detail-color-selector__colors', { visible: true });
-
-        const colorButtons = await page.$$('.product-detail-color-selector__colors .product-detail-color-selector__color-button');
-        console.log(`Found ${colorButtons.length} color variants`);
-
-        const selectedButton = await page.$('.product-detail-color-selector__color-button--is-selected');
-        if (!selectedButton) {
-            throw new Error('No selected color button found');
-        }
-
-        const selectedColorName = await page.evaluate((btn: Element) => {
-            const screenReaderText = btn.querySelector('.product-detail-color-selector__color-area .screen-reader-text');
-            return screenReaderText?.textContent?.trim() || `color-${Math.random()}`;
-        }, selectedButton);
-
-        console.log(`Processing initially selected color: ${selectedColorName}`);
-
         async function getColorImages(): Promise<string[]> {
             return await page.evaluate(() => {
                 const pictures = Array.from(document.querySelectorAll('.media-image'));
@@ -83,77 +66,106 @@ export async function scrapeProductImages(productUrl: string): Promise<ImageInfo
             });
         }
 
-        async function tryClickElement(element: ElementHandle<Element>, description: string): Promise<boolean> {
-            try {
-                console.log(`Attempting click on ${description}...`);
-                await element.click();
-                await delay(500);
+        // Check if color selector exists
+        const hasColorSelector = await page.evaluate(() => {
+            return !!document.querySelector('.product-detail-color-selector__colors');
+        });
 
-                const isSelected = await page.evaluate((el: Element) => {
-                    return el.classList.contains('product-detail-color-selector__color-button--is-selected');
-                }, element);
+        if (!hasColorSelector) {
+            console.log('No color selector found - processing single color product');
+            const colorImages = await getColorImages();
+            colorImages.forEach((url: string) => images.push({ url, color: 'default' }));
+        } else {
+            console.log('Color selector found - processing multiple colors');
+            await page.waitForSelector('.product-detail-color-selector__colors', { visible: true });
 
-                console.log(`Click result: ${isSelected ? 'Successfully selected' : 'Not selected'}`);
-                return isSelected;
-            } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                console.log(`Click failed: ${errorMessage}`);
-                return false;
+            const colorButtons = await page.$$('.product-detail-color-selector__colors .product-detail-color-selector__color-button');
+            console.log(`Found ${colorButtons.length} color variants`);
+
+            const selectedButton = await page.$('.product-detail-color-selector__color-button--is-selected');
+            if (!selectedButton) {
+                throw new Error('No selected color button found');
             }
-        }
 
-        // Process initially selected color
-        const initialImages = await getColorImages();
-        initialImages.forEach(url => images.push({ url, color: selectedColorName }));
+            const selectedColorName = await page.evaluate((btn: Element) => {
+                const screenReaderText = btn.querySelector('.product-detail-color-selector__color-area .screen-reader-text');
+                return screenReaderText?.textContent?.trim() || `color-${Math.random()}`;
+            }, selectedButton);
 
-        // Process other colors
-        for (const button of colorButtons) {
-            const isSelected = await page.evaluate((btn: Element) =>
-                btn.classList.contains('product-detail-color-selector__color-button--is-selected'), button);
+            console.log(`Processing initially selected color: ${selectedColorName}`);
 
-            if (!isSelected) {
-                const colorName = await page.evaluate((btn: Element) => {
-                    const screenReaderText = btn.querySelector('.product-detail-color-selector__color-area .screen-reader-text');
-                    return screenReaderText?.textContent?.trim() || `color-${Math.random()}`;
-                }, button);
+            async function tryClickElement(element: ElementHandle<Element>, description: string): Promise<boolean> {
+                try {
+                    console.log(`Attempting click on ${description}...`);
+                    await page.evaluate((el) => (el as HTMLElement).click(), element);
+                    await delay(500);
 
-                console.log(`Processing color: ${colorName}`);
+                    const isSelected = await page.evaluate((el: Element) => {
+                        return el.classList.contains('product-detail-color-selector__color-button--is-selected');
+                    }, element);
 
-                let clickSuccess = await tryClickElement(button, 'button');
+                    console.log(`Click result: ${isSelected ? 'Successfully selected' : 'Not selected'}`);
+                    return isSelected;
+                } catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                    console.log(`Click failed: ${errorMessage}`);
+                    return false;
+                }
+            }
 
-                if (!clickSuccess) {
-                    const parentLi = await page.evaluateHandle(btn =>
-                        btn.closest('.product-detail-color-selector__color'), button);
+            // Process initially selected color
+            const initialImages = await getColorImages();
+            initialImages.forEach(url => images.push({ url, color: selectedColorName }));
 
-                    if (parentLi) {
-                        const parentElement = parentLi.asElement() as ElementHandle<Element>;
-                        if (parentElement) {
-                            clickSuccess = await tryClickElement(parentElement, 'li element');
+            // Process other colors
+            for (const button of colorButtons) {
+                const isSelected = await page.evaluate((btn: Element) =>
+                    btn.classList.contains('product-detail-color-selector__color-button--is-selected'), button);
+
+                if (!isSelected) {
+                    const colorName = await page.evaluate((btn: Element) => {
+                        const screenReaderText = btn.querySelector('.product-detail-color-selector__color-area .screen-reader-text');
+                        return screenReaderText?.textContent?.trim() || `color-${Math.random()}`;
+                    }, button);
+
+                    console.log(`Processing color: ${colorName}`);
+
+                    let clickSuccess = await tryClickElement(button, 'button');
+
+                    if (!clickSuccess) {
+                        const parentLi = await page.evaluateHandle(btn =>
+                            btn.closest('.product-detail-color-selector__color'), button);
+
+                        if (parentLi) {
+                            const parentElement = parentLi.asElement() as ElementHandle<Element>;
+                            if (parentElement) {
+                                clickSuccess = await tryClickElement(parentElement, 'li element');
+                            }
+                            await parentLi.dispose();
                         }
-                        await parentLi.dispose();
                     }
-                }
 
-                if (!clickSuccess) {
-                    const colorArea = await button.$('.product-detail-color-selector__color-area');
-                    if (colorArea) {
-                        clickSuccess = await tryClickElement(colorArea, 'color area div');
+                    if (!clickSuccess) {
+                        const colorArea = await button.$('.product-detail-color-selector__color-area');
+                        if (colorArea) {
+                            clickSuccess = await tryClickElement(colorArea, 'color area div');
+                        }
                     }
+
+                    if (!clickSuccess) {
+                        console.log(`Failed to select color ${colorName}, skipping...`);
+                        continue;
+                    }
+
+                    await Promise.all([
+                        page.waitForSelector('.product-detail-color-selector__color-button--is-selected'),
+                        page.waitForSelector('.media-image__image', { visible: true })
+                    ]);
+
+                    const colorImages = await getColorImages();
+                    colorImages.forEach(url => images.push({ url, color: colorName }));
+                    await delay(10000);
                 }
-
-                if (!clickSuccess) {
-                    console.log(`Failed to select color ${colorName}, skipping...`);
-                    continue;
-                }
-
-                await Promise.all([
-                    page.waitForSelector('.product-detail-color-selector__color-button--is-selected'),
-                    page.waitForSelector('.media-image__image', { visible: true })
-                ]);
-
-                const colorImages = await getColorImages();
-                colorImages.forEach(url => images.push({ url, color: colorName }));
-                await delay(10000);
             }
         }
 
