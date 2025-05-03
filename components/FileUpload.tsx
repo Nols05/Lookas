@@ -3,7 +3,7 @@
 import { AlertCircleIcon, ImageIcon, UploadIcon, XIcon } from "lucide-react"
 import { useFileUpload } from "@/hooks/use-file-upload"
 import { Button } from "@/components/ui/button"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import Image from "next/image"
 import { storage } from "@/lib/firebase"
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
@@ -120,7 +120,7 @@ export default function FileUpload() {
   };
 
   // Handle image paste events
-  const handlePaste = (e: ClipboardEvent) => {
+  const handlePaste = useCallback((e: ClipboardEvent) => {
     e.preventDefault()
     console.log("Paste event detected")
 
@@ -148,10 +148,10 @@ export default function FileUpload() {
         }
       }
     }
-  }
+  }, [handleFileSelect])
 
   // React paste handler
-  const handleReactPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+  const handleReactPaste = useCallback((e: React.ClipboardEvent<HTMLDivElement>) => {
     e.preventDefault()
     console.log("React paste event detected")
 
@@ -179,7 +179,7 @@ export default function FileUpload() {
         }
       }
     }
-  }
+  }, [handleFileSelect])
 
   // Open system file picker
   const openFilePicker = () => {
@@ -204,7 +204,7 @@ export default function FileUpload() {
         pasteArea.removeEventListener('paste', handlePaste)
       }
     }
-  }, [])
+  }, [handlePaste])
 
   return (
     <div className="flex flex-col gap-2">
