@@ -7,6 +7,13 @@ interface ImageInfo {
     color: string;
 }
 
+interface ProxyConfig {
+    host: string;
+    port: number;
+    username?: string;
+    password?: string;
+}
+
 let browserInstance: Browser | null = null;
 
 async function getBrowser() {
@@ -25,30 +32,127 @@ export async function closeBrowser() {
     }
 }
 
+const USER_AGENTS = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2.1 Safari/605.1.15'
+];
+
+async function getRandomUserAgent(): Promise<string> {
+    return USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+}
+
+async function exponentialBackoff(retryCount: number): Promise<void> {
+    const baseDelay = 1000; // 1 second
+    const maxDelay = 60000; // 1 minute
+    const delay = Math.min(baseDelay * Math.pow(2, retryCount), maxDelay);
+    const jitter = Math.random() * 1000; // Add up to 1 second of random jitter
+    await new Promise(resolve => setTimeout(resolve, delay + jitter));
+}
+
 /**
  * Scrapes all product images from a Zara product page
  * @param productUrl The URL of the Zara product page
+ * @param proxy Optional proxy configuration
  * @returns Promise<ImageInfo[]> Array of image URLs with their associated colors
  */
-export async function scrapeProductImages(productUrl: string): Promise<ImageInfo[]> {
-    const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+export async function scrapeProductImages(productUrl: string, proxy?: ProxyConfig): Promise<ImageInfo[]> {
+    const USER_AGENT = await getRandomUserAgent();
     const delay = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
     const images: ImageInfo[] = [];
+    const MAX_RETRIES = 3;
+    const TIMEOUT = 30000; // Increased to 30 seconds
 
     console.log('Starting Zara image scraper...');
     const browser = await getBrowser();
     const page = await browser.newPage();
-    await page.setUserAgent(USER_AGENT);
 
-    try {
-        console.log(`Navigating to ${productUrl}`);
-        const response = await page.goto(productUrl, {
-            waitUntil: 'domcontentloaded',  // Changed from networkidle2 to domcontentloaded for faster loading
-            timeout: 15000
+    // Configure proxy if provided
+    if (proxy) {
+        await page.authenticate({
+            username: proxy.username || '',
+            password: proxy.password || ''
         });
 
+        const proxyServer = `http://${proxy.host}:${proxy.port}`;
+        console.log(`Using proxy: ${proxyServer}`);
+
+        await page.setExtraHTTPHeaders({
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Connection': 'keep-alive',
+            'Proxy-Connection': 'keep-alive'
+        });
+    }
+
+    await page.setUserAgent(USER_AGENT);
+
+    // Add randomized viewport size
+    await page.setViewport({
+        width: 1366 + Math.floor(Math.random() * 100),
+        height: 768 + Math.floor(Math.random() * 100),
+        deviceScaleFactor: 1,
+        hasTouch: false,
+        isLandscape: true,
+        isMobile: false
+    });
+
+    // Add additional browser fingerprint randomization
+    await page.evaluateOnNewDocument(() => {
+        // Override navigator properties
+        Object.defineProperty(navigator, 'webdriver', { get: () => false });
+        Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+
+        // Add random plugins length
+        Object.defineProperty(navigator, 'plugins', {
+            get: () => new Array(Math.floor(Math.random() * 5) + 1).fill(null)
+        });
+    });
+
+    try {
+        let response = null;
+        let retryCount = 0;
+
+        while (!response && retryCount < MAX_RETRIES) {
+            try {
+                console.log(`Navigating to ${productUrl} (Attempt ${retryCount + 1}/${MAX_RETRIES})`);
+                response = await page.goto(productUrl, {
+                    waitUntil: 'domcontentloaded',
+                    timeout: TIMEOUT
+                });
+
+                // Check if we're being rate limited or blocked
+                const content = await page.content();
+                if (content.toLowerCase().includes('rate limit') ||
+                    content.toLowerCase().includes('blocked') ||
+                    content.toLowerCase().includes('captcha')) {
+
+                    console.log('Detected protection mechanism, implementing backoff strategy...');
+                    await exponentialBackoff(retryCount);
+
+                    if (retryCount === MAX_RETRIES - 1) {
+                        throw new Error('Protection mechanism detected after all retries');
+                    }
+
+                    retryCount++;
+                    continue;
+                }
+
+            } catch (navigationError) {
+                retryCount++;
+                console.error(`Navigation attempt ${retryCount} failed:`, navigationError);
+
+                if (retryCount === MAX_RETRIES) {
+                    throw navigationError;
+                }
+
+                await exponentialBackoff(retryCount);
+            }
+        }
+
         if (!response) {
-            throw new Error('Failed to load page: No response received');
+            throw new Error('Failed to load page: No response received after all retries');
         }
 
         console.log(`Response status: ${response.status()} ${response.statusText()}`);

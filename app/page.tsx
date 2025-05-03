@@ -1,9 +1,11 @@
 import FileUpload from "@/components/FileUpload"
+import VerticalTimeline from "@/components/VerticalTimeline"
 import { Menu } from "lucide-react"
 
 export default function Home() {
   return (
     <div className="min-h-screen flex flex-col">
+      <VerticalTimeline />
       {/* Header with minimal navigation */}
       <header className="border-b border-gray-100">
         <div className="container mx-auto px-6 py-4 flex items-center">
@@ -17,7 +19,7 @@ export default function Home() {
 
 
       {/* Upload section */}
-      <main className="flex-1">
+      <main className="flex-1 mb-96">
         {/* Hero section with file upload */}
         <section className="container mx-auto px-6 py-20 md:py-32 flex flex-col items-center justify-center">
           <div className="max-w-3xl mx-auto text-center">
