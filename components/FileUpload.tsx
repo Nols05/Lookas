@@ -214,7 +214,7 @@ export default function FileUpload() {
   }, [handlePaste])
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 max-w-2xl mx-auto">
       <div className="relative">
         {/* Drop area */}
         <div
@@ -225,7 +225,9 @@ export default function FileUpload() {
           onDrop={handleDrop}
           onPaste={handleReactPaste}
           data-dragging={isDragging || undefined}
-          className="border-input data-[dragging=true]:bg-accent/50 has-[input:focus]:border-ring has-[input:focus]:ring-ring/50 relative flex min-h-52 flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed p-4 transition-colors has-[input:focus]:ring-[3px]"
+          className={`border-input data-[dragging=true]:bg-accent/50 has-[input:focus]:border-ring has-[input:focus]:ring-ring/50 relative flex flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed p-4 transition-colors has-[input:focus]:ring-[3px] ${
+            !previewUrl ? 'min-h-52' : ''
+          }`}
           tabIndex={0}
         >
           <input
@@ -235,14 +237,13 @@ export default function FileUpload() {
             aria-label="Upload image file"
           />
           {previewUrl ? (
-            <div className="absolute inset-0 flex items-center justify-center p-4">
+            <div className="p-4 mx-auto">
               <Image
                 src={previewUrl}
                 alt={files[0]?.file?.name || "Uploaded image"}
                 width={320}
                 height={240}
-                className="mx-auto max-h-full rounded object-contain"
-                style={{ width: 'auto', height: 'auto', maxHeight: '100%' }}
+                className="rounded object-contain max-h-40 max-w-sm"
               />
             </div>
           ) : (
