@@ -25,7 +25,7 @@ interface ResultResponse {
   data: {
     image: string
   }
-  error_code: numbers
+  error_code: number
   task_status: number
 }
 
@@ -51,7 +51,7 @@ export default function ImageSelector({ clothesImageUrl, isOpen, onClose }: Imag
     const options = {
       method: "GET",
       headers: {
-        "X-RapidAPI-Key": "1ef6fb8153msh6bd32418a554c3cp1f698cjsn43c78b243376",
+        "X-RapidAPI-Key": process.env.NEXT_PUBLIC_RAPIDAPI_KEY_TRY_ON!,
         "X-RapidAPI-Host": "try-on-clothes.p.rapidapi.com",
       },
     }
@@ -130,7 +130,7 @@ export default function ImageSelector({ clothesImageUrl, isOpen, onClose }: Imag
       const options = {
         method: "POST",
         headers: {
-          "X-RapidAPI-Key": "1ef6fb8153msh6bd32418a554c3cp1f698cjsn43c78b243376",
+          "X-RapidAPI-Key": process.env.NEXT_PUBLIC_RAPIDAPI_KEY_TRY_ON!,
           "X-RapidAPI-Host": "try-on-clothes.p.rapidapi.com",
         },
         body: formData,
