@@ -1,11 +1,28 @@
 "use server"
 
-import puppeteer, { ElementHandle } from 'puppeteer';
-
+import puppeteer, { ElementHandle, Browser } from 'puppeteer';
 
 interface ImageInfo {
     url: string;
     color: string;
+}
+
+let browserInstance: Browser | null = null;
+
+async function getBrowser() {
+    if (!browserInstance) {
+        browserInstance = await puppeteer.launch({
+            headless: true
+        });
+    }
+    return browserInstance;
+}
+
+export async function closeBrowser() {
+    if (browserInstance) {
+        await browserInstance.close();
+        browserInstance = null;
+    }
 }
 
 /**
@@ -19,13 +36,16 @@ export async function scrapeProductImages(productUrl: string): Promise<ImageInfo
     const images: ImageInfo[] = [];
 
     console.log('Starting Zara image scraper...');
-    const browser = await puppeteer.launch();
+    const browser = await getBrowser();
     const page = await browser.newPage();
     await page.setUserAgent(USER_AGENT);
 
     try {
         console.log(`Navigating to ${productUrl}`);
-        const response = await page.goto(productUrl, { waitUntil: 'networkidle2' });
+        const response = await page.goto(productUrl, {
+            waitUntil: 'domcontentloaded',  // Changed from networkidle2 to domcontentloaded for faster loading
+            timeout: 15000
+        });
 
         if (!response) {
             throw new Error('Failed to load page: No response received');
@@ -167,7 +187,7 @@ export async function scrapeProductImages(productUrl: string): Promise<ImageInfo
 
                     const colorImages = await getColorImages();
                     colorImages.forEach(url => images.push({ url, color: colorName }));
-                    await delay(10000);
+                    await delay(1000); // Reduced from 10000 to 1000ms
                 }
             }
         }
@@ -177,7 +197,7 @@ export async function scrapeProductImages(productUrl: string): Promise<ImageInfo
         console.error('Scraping failed:', errorMessage);
         throw error;
     } finally {
-        await browser.close();
+        await page.close(); // Close only the page, not the browser
     }
 
     console.log('Scraping completed successfully!');

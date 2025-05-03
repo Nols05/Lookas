@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
 import { Card } from '@/components/ui/card';
-import { scrapeProductImages } from '@/lib/scraping';
+import { scrapeProductImages, closeBrowser } from '@/lib/scraping';
 import { Button } from '@/components/ui/button';
 import ImageSelector from '@/components/ImageSelector';
 import { ProductGridSkeleton } from './ProductSkeleton';
@@ -36,6 +36,7 @@ export function ProductGrid({ products: initialProducts }: ProductGridProps) {
     const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const processingCycleRef = useRef<string | null>(null);
+    const BATCH_SIZE = 3; // Process 3 products in parallel
 
     const handleTryOn = (product: Product, variantIndex: number) => {
         const imageUrl = product.scrapedImages?.[variantIndex]?.url;
@@ -54,34 +55,54 @@ export function ProductGrid({ products: initialProducts }: ProductGridProps) {
             setIsProcessing(true);
             processingCycleRef.current = currentCycle;
 
-            const updatedProducts = await Promise.all(initialProducts.map(async (product) => {
-                if (!product.imageUrl && product.link && product.link.includes('zara.com')) {
-                    console.log(`Scraping images for ${product.name} from ${product.link}`);
-                    try {
-                        const scrapedImages = await scrapeProductImages(product.link);
-                        console.log(`Scraped ${scrapedImages.length} images for ${product.name}`);
+            try {
+                const productsToProcess = initialProducts.filter(
+                    product => !product.imageUrl && product.link && product.link.includes('zara.com')
+                );
 
-                        if (scrapedImages.length > 0) {
-                            return {
-                                ...product,
-                                scrapedImages: scrapedImages
-                            };
+                const processedProducts = [...initialProducts];
+
+                // Process products in batches
+                for (let i = 0; i < productsToProcess.length; i += BATCH_SIZE) {
+                    const batch = productsToProcess.slice(i, i + BATCH_SIZE);
+                    const batchPromises = batch.map(async (product) => {
+                        try {
+                            console.log(`Scraping images for ${product.name} from ${product.link}`);
+                            const scrapedImages = await scrapeProductImages(product.link);
+                            console.log(`Scraped ${scrapedImages.length} images for ${product.name}`);
+
+                            if (scrapedImages.length > 0) {
+                                const index = processedProducts.findIndex(p => p.id === product.id);
+                                if (index !== -1) {
+                                    processedProducts[index] = {
+                                        ...product,
+                                        scrapedImages: scrapedImages
+                                    };
+                                }
+                            } else {
+                                console.log(`No images found after scraping for ${product.name}`);
+                            }
+                        } catch (error) {
+                            console.error(`Failed to scrape images for ${product.name}:`, error);
                         }
-                        console.log(`No images found after scraping for ${product.name}`);
-                        return product;
-                    } catch (error) {
-                        console.error(`Failed to scrape images for ${product.name}:`, error);
-                        return product;
-                    }
-                }
-                return product;
-            }));
+                    });
 
-            setProducts(updatedProducts);
-            setIsProcessing(false);
+                    // Wait for the current batch to complete and update the UI
+                    await Promise.all(batchPromises);
+                    setProducts([...processedProducts]);
+                }
+            } finally {
+                setIsProcessing(false);
+                await closeBrowser(); // Clean up browser instance after all processing is done
+            }
         };
 
         processProducts();
+
+        // Cleanup function to ensure browser is closed when component unmounts
+        return () => {
+            closeBrowser().catch(console.error);
+        };
     }, [initialProducts]);
 
     const handleVariantSelect = (productId: string, variantIndex: number) => {
