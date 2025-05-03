@@ -24,8 +24,8 @@ interface ProductImageGridProps {
 export function ProductImageGrid({ products }: ProductImageGridProps) {
     const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
     const [productImages, setProductImages] = useState<Record<string, Array<{
-        colorName: string;
-        images: string[];
+        url: string;
+        color: string;
     }>>>({});
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
@@ -34,20 +34,18 @@ export function ProductImageGrid({ products }: ProductImageGridProps) {
 
         try {
             setLoadingStates(prev => ({ ...prev, [product.id]: true }));
-            const scrapedData = await scrapeProductImages(product.link);
-
-            // Convert Buffer arrays to base64 strings for display
-            const processedVariants = scrapedData.map(variant => ({
-                colorName: variant.colorName,
-                images: variant.images.map(buffer =>
-                    `data:image/jpeg;base64,${Buffer.from(buffer).toString('base64')}`
-                )
-            }));
+            const scrapedImages = await scrapeProductImages(product.link);
 
             setProductImages(prev => ({
                 ...prev,
-                [product.id]: processedVariants
+                [product.id]: scrapedImages
             }));
+
+            if (scrapedImages.length === 0) {
+                toast.error(`No images found for ${product.name}`);
+            } else {
+                toast.success(`Loaded ${scrapedImages.length} images for ${product.name}`);
+            }
         } catch (error) {
             console.error('Failed to load images:', error);
             toast.error(`Failed to load images for ${product.name}`);
@@ -85,29 +83,42 @@ export function ProductImageGrid({ products }: ProductImageGridProps) {
                         </div>
                     )}
 
-                    {productImages[product.id]?.map((variant, variantIndex) => (
-                        <div key={variantIndex} className="space-y-2">
-                            <h3 className="text-lg font-medium">{variant.colorName}</h3>
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                                {variant.images.map((imageUrl, imageIndex) => (
-                                    <div
-                                        key={imageIndex}
-                                        className={`relative aspect-square cursor-pointer rounded-lg overflow-hidden border-2 ${selectedImage === imageUrl ? 'border-blue-500' : 'border-transparent'
-                                            }`}
-                                        onClick={() => handleImageSelect(imageUrl)}
-                                    >
-                                        <Image
-                                            src={imageUrl}
-                                            alt={`${product.name} - ${variant.colorName} - View ${imageIndex + 1}`}
-                                            fill
-                                            className="object-cover"
-                                            sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                                        />
+                    {productImages[product.id] && (
+                        <div className="space-y-4">
+                            {/* Group images by color */}
+                            {Object.entries(
+                                productImages[product.id].reduce((acc, img) => {
+                                    if (!acc[img.color]) {
+                                        acc[img.color] = [];
+                                    }
+                                    acc[img.color].push(img.url);
+                                    return acc;
+                                }, {} as Record<string, string[]>)
+                            ).map(([color, urls]) => (
+                                <div key={color} className="space-y-2">
+                                    <h3 className="text-lg font-medium">{color}</h3>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                        {urls.map((imageUrl, imageIndex) => (
+                                            <div
+                                                key={imageIndex}
+                                                className={`relative aspect-square cursor-pointer rounded-lg overflow-hidden border-2 ${selectedImage === imageUrl ? 'border-blue-500' : 'border-transparent'
+                                                    }`}
+                                                onClick={() => handleImageSelect(imageUrl)}
+                                            >
+                                                <Image
+                                                    src={imageUrl}
+                                                    alt={`${product.name} - ${color} - View ${imageIndex + 1}`}
+                                                    fill
+                                                    className="object-cover"
+                                                    sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                                                />
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
+                                </div>
+                            ))}
                         </div>
-                    ))}
+                    )}
                 </div>
             ))}
         </div>
