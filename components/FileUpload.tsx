@@ -68,7 +68,7 @@ export default function FileUpload() {
   const maxSizeMB = 2
   const maxSize = maxSizeMB * 1024 * 1024 // 2MB default
   const [searchResults, setSearchResults] = useState<ProductSearchResult[] | null>(null)
-  const [isSearching, setIsSearching] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const pasteAreaRef = useRef<HTMLDivElement>(null)
 
@@ -90,15 +90,17 @@ export default function FileUpload() {
   const previewUrl = files[0]?.preview || null
 
   // Handle file selection and API call
-  const handleFileSelect = async (selectedFiles: FileList | File[]) => {
+  const handleFileSelect = useCallback(async (selectedFiles: FileList | File[]) => {
     addFiles(selectedFiles);
-  };
+    // Resetear estados al seleccionar nuevo archivo
+    setSearchResults(null);
+  }, [addFiles]);
 
   // Handle image processing and search
   const handleProcessImage = async () => {
     if (files.length > 0) {
       try {
-        setIsSearching(true);
+        setIsProcessing(true);
         const file = files[0].file as File;
 
         // First upload to Cloudinary
@@ -111,7 +113,7 @@ export default function FileUpload() {
         console.error("Error processing image:", error);
         // Show error to user
       } finally {
-        setIsSearching(false);
+        setIsProcessing(false);
       }
     }
   };
@@ -285,15 +287,15 @@ export default function FileUpload() {
           <Button
             className="mt-4 w-full"
             onClick={handleProcessImage}
-            disabled={isSearching}
+            disabled={isProcessing}
           >
-            {isSearching ? "Processing..." : "Process Image"}
+            {isProcessing ? "Processing..." : "Process Image"}
           </Button>
         )}
       </div>
 
       {/* Inditex API Search Status */}
-      {isSearching && (
+      {isProcessing && (
         <div className="mt-4 text-center">
           <p className="text-sm">Searching for similar products...</p>
         </div>
