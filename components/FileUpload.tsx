@@ -4,6 +4,7 @@ import { AlertCircleIcon, ImageIcon, UploadIcon, XIcon } from "lucide-react"
 import { useFileUpload } from "@/hooks/use-file-upload"
 import { Button } from "@/components/ui/button"
 import { useState, useEffect, useRef } from "react"
+import Image from "next/image"
 
 // Componente de diálogo para seleccionar o pegar imágenes
 function ImageDialog({ 
@@ -23,10 +24,10 @@ function ImageDialog({
   const [pastedImage, setPastedImage] = useState<string | null>(null)
   const [pastedFile, setPastedFile] = useState<File | null>(null)
 
-  // Manejar el evento de pegar imágenes
+  // Handle image paste events
   const handlePaste = (e: ClipboardEvent) => {
     e.preventDefault()
-    console.log("Evento de pegado detectado")
+    console.log("Paste event detected")
     
     if (!e.clipboardData) return
     
@@ -34,13 +35,13 @@ function ImageDialog({
     
     for (let i = 0; i < items.length; i++) {
       const item = items[i]
-      console.log("Tipo de elemento pegado:", item.type)
+      console.log("Pasted item type:", item.type)
       
       if (item.type.indexOf('image') !== -1) {
         const file = item.getAsFile()
         if (file) {
-          console.log("Imagen encontrada:", file.name, file.type, file.size)
-          // Crear una vista previa
+          console.log("Image found:", file.name, file.type, file.size)
+          // Create preview
           const reader = new FileReader()
           reader.onload = (e) => {
             if (e.target?.result) {
@@ -55,10 +56,10 @@ function ImageDialog({
     }
   }
 
-  // Manejador de eventos de pegado para React
+  // React paste handler
   const handleReactPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
     e.preventDefault()
-    console.log("Evento React de pegado detectado")
+    console.log("React paste event detected")
     
     if (!e.clipboardData) return
     
@@ -66,13 +67,13 @@ function ImageDialog({
     
     for (let i = 0; i < items.length; i++) {
       const item = items[i]
-      console.log("Tipo de elemento pegado (React):", item.type)
+      console.log("Pasted item type (React):", item.type)
       
       if (item.type.indexOf('image') !== -1) {
         const file = item.getAsFile()
         if (file) {
-          console.log("Imagen encontrada (React):", file.name, file.type, file.size)
-          // Crear una vista previa
+          console.log("Image found (React):", file.name, file.type, file.size)
+          // Create preview
           const reader = new FileReader()
           reader.onload = (e) => {
             if (e.target?.result) {
@@ -87,7 +88,7 @@ function ImageDialog({
     }
   }
 
-  // Manejar el evento de seleccionar archivos
+  // Handle file selection events
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       onFileSelect(e.target.files)
@@ -95,7 +96,7 @@ function ImageDialog({
     }
   }
 
-  // Confirmar la imagen pegada
+  // Confirm pasted image
   const confirmPastedImage = () => {
     if (pastedFile) {
       onFileSelect([pastedFile])
@@ -103,25 +104,25 @@ function ImageDialog({
     }
   }
 
-  // Abrir el selector de archivos del sistema
+  // Open system file picker
   const openFilePicker = () => {
     fileInputRef.current?.click()
   }
 
-  // Configurar eventos de pegado
+  // Setup paste events
   useEffect(() => {
     if (!isOpen) return
 
-    // Agregar evento de paste al documento completo
+    // Add paste event to document
     document.addEventListener('paste', handlePaste)
     
-    // También intentar con el área específica
+    // Also try with specific area
     const pasteArea = pasteAreaRef.current
     if (pasteArea) {
       pasteArea.addEventListener('paste', handlePaste)
     }
     
-    // Limpiar los eventos cuando el componente se desmonte o se cierre
+    // Clean up events when component unmounts or closes
     return () => {
       document.removeEventListener('paste', handlePaste)
       if (pasteArea) {
@@ -130,17 +131,17 @@ function ImageDialog({
     }
   }, [isOpen])
 
-  // Enfocar el área de pegado cuando se abre el diálogo
+  // Focus paste area when dialog opens
   useEffect(() => {
     if (isOpen) {
-      // Dar tiempo al DOM para renderizar el diálogo
+      // Give time for DOM to render
       setTimeout(() => {
         if (pasteAreaRef.current) {
           pasteAreaRef.current.focus()
         }
       }, 100)
     } else {
-      // Limpiar estado al cerrar
+      // Clear state when closing
       setPastedImage(null)
       setPastedFile(null)
     }
@@ -155,11 +156,11 @@ function ImageDialog({
     >
       <div className="bg-background rounded-lg p-6 w-full max-w-md shadow-xl">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium">Seleccionar imagen</h3>
+          <h3 className="text-lg font-medium">Select Image</h3>
           <button 
             onClick={onClose} 
             className="rounded-full p-1 hover:bg-accent"
-            aria-label="Cerrar"
+            aria-label="Close"
           >
             <XIcon className="size-4" />
           </button>
@@ -173,38 +174,41 @@ function ImageDialog({
         >
           {pastedImage ? (
             <div className="space-y-4">
-              <img 
+              <Image 
                 src={pastedImage} 
-                alt="Imagen pegada" 
+                alt="Pasted image" 
+                width={320}
+                height={240}
                 className="max-h-52 mx-auto object-contain rounded"
+                style={{ width: 'auto', height: 'auto', maxHeight: '13rem' }}
               />
-              <Button onClick={confirmPastedImage}>Usar esta imagen</Button>
+              <Button onClick={confirmPastedImage}>Use this image</Button>
             </div>
           ) : (
             <div className="space-y-4" onClick={() => pasteAreaRef.current?.focus()}>
               <div className="bg-background mb-2 flex size-11 mx-auto shrink-0 items-center justify-center rounded-full border">
                 <ImageIcon className="size-4 opacity-60" />
               </div>
-              <p className="text-sm font-medium">Pega una imagen aquí (Ctrl+V)</p>
+              <p className="text-sm font-medium">Paste an image here (Ctrl+V)</p>
               <p className="text-muted-foreground text-xs">
-                La imagen debe ser menor de {maxSizeMB}MB
+                Image must be less than {maxSizeMB}MB
               </p>
               <p className="text-muted-foreground text-xs">
-                Haz clic aquí y luego presiona Ctrl+V
+                Click here and then press Ctrl+V
               </p>
             </div>
           )}
         </div>
 
         <div className="text-center space-y-2">
-          <p className="text-sm">O selecciona un archivo</p>
+          <p className="text-sm">Or select a file</p>
           <Button 
             variant="outline" 
             onClick={openFilePicker}
             className="w-full"
           >
             <UploadIcon className="size-4 me-2" />
-            Seleccionar archivo
+            Select file
           </Button>
           <input
             type="file"
@@ -265,10 +269,13 @@ export default function FileUpload() {
           />
           {previewUrl ? (
             <div className="absolute inset-0 flex items-center justify-center p-4">
-              <img
+              <Image
                 src={previewUrl}
                 alt={files[0]?.file?.name || "Uploaded image"}
+                width={320}
+                height={240}
                 className="mx-auto max-h-full rounded object-contain"
+                style={{ width: 'auto', height: 'auto', maxHeight: '100%' }}
               />
             </div>
           ) : (
