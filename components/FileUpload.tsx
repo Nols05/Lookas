@@ -19,44 +19,21 @@ interface ProductSearchResult {
   [key: string]: string | number | string[] | boolean | object | undefined;
 }
 
-// Function to upload image to server
-const uploadImageToServer = async (file: File): Promise<string> => {
+// Function to search products using server API
+const searchProductsByImage = async (file: File): Promise<ProductSearchResult[]> => {
   try {
     const formData = new FormData();
     formData.append('file', file);
-    
-    const response = await fetch('/api/upload-image', {
+
+    const response = await fetch('/api/product-search', {
       method: 'POST',
       body: formData,
     });
-    
-    if (!response.ok) {
-      throw new Error(`Upload failed with status ${response.status}`);
-    }
-    
-    const data = await response.json();
-    return data.fileUrl; // Return the URL of the uploaded file
-  } catch (error) {
-    console.error('Error uploading image:', error);
-    throw error;
-  }
-};
 
-// Function to search products using server API
-const searchProductsByImage = async (imageUrl: string): Promise<ProductSearchResult[]> => {
-  try {
-    const response = await fetch('/api/product-search', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ imageUrl }),
-    });
-    
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error('Error searching products:', error);
@@ -308,17 +285,14 @@ export default function FileUpload() {
   // Handle file selection and API call
   const handleFileSelect = async (selectedFiles: FileList | File[]) => {
     addFiles(selectedFiles);
-    
+
     if (selectedFiles.length > 0) {
       const file = selectedFiles[0];
       try {
         setIsSearching(true);
-        
-        // Upload the image to our server
-        const imageUrl = await uploadImageToServer(file);
-        
-        // Search for products with the image URL
-        const products = await searchProductsByImage(imageUrl);
+
+        // Search for products with the file directly
+        const products = await searchProductsByImage(file);
         setSearchResults(products);
       } catch (error) {
         console.error("Error processing image:", error);

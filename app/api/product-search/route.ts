@@ -17,33 +17,53 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse the request body
-    const body = await request.json();
-    const { imageUrl } = body;
+    // Get the form data
+    const formData = await request.formData();
+    const file = formData.get('file') as File;
 
     // Validate the request
-    if (!imageUrl) {
+    if (!file) {
       return NextResponse.json(
-        { error: 'Image URL is required' },
+        { error: 'Image file is required' },
         { status: 400 }
       );
     }
 
-    // Call the Inditex API
-    const response = await fetch('https://api.inditex.com/pubvsearch/products', {
-      method: 'POST',
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      return NextResponse.json(
+        { error: 'Only image files are allowed' },
+        { status: 400 }
+      );
+    }
+
+    // Get file extension
+    const fileType = file.type.split('/')[1];
+    const extension = fileType === 'jpeg' || fileType === 'jpg' ? 'jpeg' : 'png';
+
+    // Convert file to base64 and create a data URL
+    const arrayBuffer = await file.arrayBuffer();
+    const base64Image = Buffer.from(arrayBuffer).toString('base64');
+    const imageUrl = `data:image/${extension};base64,${base64Image}`;
+
+    // Call the Inditex API with query parameter
+    const encodedImageUrl = encodeURIComponent(imageUrl);
+    const apiUrl = `https://api.inditex.com/pubvsearch/products?image=${encodedImageUrl}`;
+
+    const response = await fetch(apiUrl, {
       headers: {
         'Authorization': INDITEX_AUTH_TOKEN,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ image: imageUrl }),
+        'Content-Type': 'application/json'
+      }
     });
+
+    console.log('Response:', response);
 
     // Check if the request was successful
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Inditex API error:', errorText);
-      
+
       return NextResponse.json(
         { error: `API request failed with status ${response.status}` },
         { status: response.status }
@@ -53,10 +73,10 @@ export async function POST(request: NextRequest) {
     // Return the API response
     const data = await response.json();
     return NextResponse.json(data);
-    
+
   } catch (error) {
     console.error('Error processing product search:', error);
-    
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
