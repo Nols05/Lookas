@@ -5,6 +5,7 @@ import { useState } from "react"
 import Image from "next/image"
 import Modal from "./Modal"
 import { Loader2 } from "lucide-react"
+import EvaluationModal from "./EvaluationModal"
 
 interface TaskResponse {
   error_code: number
@@ -32,6 +33,7 @@ export default function ImageSelector({ clothesImageUrl, isOpen, onClose }: Imag
   const [isLoading, setIsLoading] = useState(false)
   const [resultImage, setResultImage] = useState<string | null>(null)
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null)
+  const [isEvaluationModalOpen, setIsEvaluationModalOpen] = useState(false)
 
   const handleWorkoutTypeChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setWorkoutType(event.target.value)
@@ -164,91 +166,118 @@ export default function ImageSelector({ clothesImageUrl, isOpen, onClose }: Imag
     setSelectedFile(null)
     setResultImage(null)
     setIsLoading(false)
+    setIsEvaluationModalOpen(false)
     onClose()
   }
 
-  return (
-    <Modal isOpen={isOpen} onClose={handleClose}>
-      <div className="max-w-4xl mx-auto px-4">
-        <h2 className="text-3xl font-light tracking-tight uppercase mb-8">Pruébate la ropa</h2>
+  const handleEvaluateClick = () => {
+    if (resultImage) {
+      setIsEvaluationModalOpen(true)
+    }
+  }
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          <div className="space-y-6">
-            <div>
-              <label htmlFor="workout-type" className="block text-sm uppercase tracking-wider mb-2">
-                Garment Type
-              </label>
-              <select
-                id="workout-type"
-                value={workoutType}
-                onChange={handleWorkoutTypeChange}
-                className="w-full p-3 border border-gray-300 bg-transparent focus:outline-none"
-              >
-                <option value="upper_body">Upper Body</option>
-                <option value="lower_body">Lower Body</option>
-                <option value="full_body">Full Body</option>
-              </select>
+  return (
+    <>
+      <Modal isOpen={isOpen} onClose={handleClose}>
+        <div className="max-w-4xl mx-auto px-4">
+          <h2 className="text-3xl font-light tracking-tight uppercase mb-8">Pruébate la ropa</h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            <div className="space-y-6">
+              <div>
+                <label htmlFor="workout-type" className="block text-sm uppercase tracking-wider mb-2">
+                  Garment Type
+                </label>
+                <select
+                  id="workout-type"
+                  value={workoutType}
+                  onChange={handleWorkoutTypeChange}
+                  className="w-full p-3 border border-gray-300 bg-transparent focus:outline-none"
+                >
+                  <option value="upper_body">Upper Body</option>
+                  <option value="lower_body">Lower Body</option>
+                  <option value="full_body">Full Body</option>
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="image-upload" className="block text-sm uppercase tracking-wider mb-2">
+                  Select Person Image
+                </label>
+                <div className="flex flex-col gap-4">
+                  <div className="relative border border-gray-300 p-3">
+                    <input
+                      type="file"
+                      id="image-upload"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <div className="text-center text-sm uppercase tracking-wider">
+                      {selectedFileName ? selectedFileName : "UPLOAD IMAGE"}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleGenerate}
+                    disabled={isLoading || !selectedFile}
+                    className={`
+                      ${isLoading ? "bg-gray-200 text-gray-500" : "bg-black text-white hover:bg-black/90"}
+                      py-3 px-6 transition-colors uppercase text-sm tracking-wider
+                      flex items-center justify-center
+                    `}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Processing
+                      </>
+                    ) : (
+                      "Generate"
+                    )}
+                  </button>
+
+                  <button
+                    onClick={handleEvaluateClick}
+                    disabled={isLoading || !resultImage}
+                    className={`
+                      ${isLoading || !resultImage ? "bg-gray-200 text-gray-500 cursor-not-allowed" : "bg-blue-600 text-white hover:bg-blue-700"}
+                      py-3 px-6 transition-colors uppercase text-sm tracking-wider
+                      flex items-center justify-center mt-2
+                    `}
+                  >
+                    Evaluate
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <div>
-              <label htmlFor="image-upload" className="block text-sm uppercase tracking-wider mb-2">
-                Select Person Image
-              </label>
-              <div className="flex flex-col gap-4">
-                <div className="relative border border-gray-300 p-3">
-                  <input
-                    type="file"
-                    id="image-upload"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            <div className="w-full">
+              <div className="border border-gray-300 aspect-square w-full flex items-center justify-center">
+                {resultImage ? (
+                  <Image
+                    src={resultImage || "/placeholder.svg"}
+                    alt="Result image"
+                    width={400}
+                    height={400}
+                    className="object-contain max-h-full max-w-full"
                   />
-                  <div className="text-center text-sm uppercase tracking-wider">
-                    {selectedFileName ? selectedFileName : "UPLOAD IMAGE"}
+                ) : (
+                  <div className="text-sm text-gray-400 uppercase tracking-wider">
+                    {isLoading ? "Generating image..." : "Result will appear here"}
                   </div>
-                </div>
-
-                <button
-                  onClick={handleGenerate}
-                  disabled={isLoading || !selectedFile}
-                  className={`
-                    ${isLoading ? "bg-gray-200 text-gray-500" : "bg-black text-white hover:bg-black/90"}
-                    py-3 px-6 transition-colors uppercase text-sm tracking-wider
-                    flex items-center justify-center
-                  `}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Processing
-                    </>
-                  ) : (
-                    "Generate"
-                  )}
-                </button>
+                )}
               </div>
             </div>
           </div>
-
-          <div className="w-full">
-            <div className="border border-gray-300 aspect-square w-full flex items-center justify-center">
-              {resultImage ? (
-                <Image
-                  src={resultImage || "/placeholder.svg"}
-                  alt="Result image"
-                  width={400}
-                  height={400}
-                  className="object-contain max-h-full max-w-full"
-                />
-              ) : (
-                <div className="text-sm text-gray-400 uppercase tracking-wider">
-                  {isLoading ? "Generating image..." : "Result will appear here"}
-                </div>
-              )}
-            </div>
-          </div>
         </div>
-      </div>
-    </Modal>
+      </Modal>
+
+      <EvaluationModal
+        isOpen={isEvaluationModalOpen}
+        onClose={() => setIsEvaluationModalOpen(false)}
+        imageUrl={resultImage}
+      />
+    </>
   )
 }
