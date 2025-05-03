@@ -1,7 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+interface InditexApiProduct {
+  id: string;
+  name: string;
+  price: {
+    currency: string;
+    value: {
+      current: number;
+      original: number | null;
+    };
+  };
+  link: string;
+  brand: string;
+  images?: string[];
+  category?: string;
+  description?: string;
+}
+
 // API authentication token read from environment variables
 const INDITEX_AUTH_TOKEN = process.env.INDITEX_AUTH_TOKEN || '';
+const INDITEX_API_URL = process.env.INDITEX_API_URL || 'https://api.inditex.com/pubvsearch/products';
 
 /**
  * Handles POST requests to search for products by image
@@ -29,11 +47,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const apiUrl = `https://api.inditex.com/pubvsearch/products?image=${encodeURIComponent(imageUrl)}`;
+    const apiUrl = `${INDITEX_API_URL}?image=${encodeURIComponent(imageUrl)}`;
 
     const response = await fetch(apiUrl, {
       headers: {
-        'Authorization': INDITEX_AUTH_TOKEN,
+        'Authorization': `${INDITEX_AUTH_TOKEN}`,
         'Content-Type': 'application/json'
       }
     });
@@ -49,9 +67,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Return the API response
+    // Parse and transform the API response
     const data = await response.json();
-    return NextResponse.json(data);
+
+    // Transform the data to match our expected format
+    const transformedProducts = data.map((item: InditexApiProduct) => ({
+      id: item.id,
+      name: item.name,
+      price: {
+        currency: item.price.currency,
+        value: {
+          current: item.price.value.current,
+          original: item.price.value.original
+        }
+      },
+      link: item.link,
+      brand: item.brand,
+      images: item.images || [],
+      category: item.category,
+      description: item.description
+    }));
+
+    return NextResponse.json(transformedProducts);
 
   } catch (error) {
     console.error('Error processing product search:', error);

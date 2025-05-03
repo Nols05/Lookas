@@ -5,14 +5,22 @@ import { useFileUpload } from "@/hooks/use-file-upload"
 import { Button } from "@/components/ui/button"
 import { useState, useEffect, useRef, useCallback } from "react"
 import Image from "next/image"
+import { ProductGrid } from "@/app/components/ProductGrid"
 
 // Define an interface for the search results
 interface ProductSearchResult {
-  id?: string;
-  name?: string;
+  id: string;
+  name: string;
+  price: {
+    currency: string;
+    value: {
+      current: number;
+      original: number | null;
+    };
+  };
+  link: string;
+  brand: string;
   images?: string[];
-  price?: number;
-  brand?: string;
   category?: string;
   description?: string;
   url?: string;
@@ -303,17 +311,15 @@ export default function FileUpload() {
 
       {/* Inditex API Search Results */}
       {searchResults && (
-        <div className="mt-4 border rounded-lg p-4">
-          <h3 className="text-lg font-medium mb-2">Search Results</h3>
+        <div className="mt-4">
+          <h3 className="text-lg font-medium mb-4">Search Results</h3>
           {searchResults.length === 0 ? (
             <p>No matching products found</p>
           ) : (
-            <div className="grid grid-cols-2 gap-4">
-              {/* Display search results here */}
-              <pre className="text-xs overflow-auto max-h-60">
-                {JSON.stringify(searchResults, null, 2)}
-              </pre>
-            </div>
+            <ProductGrid products={searchResults.map(product => ({
+              ...product,
+              imageUrl: product.images?.[0] // Use the first image from the results
+            }))} />
           )}
         </div>
       )}
