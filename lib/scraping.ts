@@ -173,8 +173,9 @@ async function scrapeZaraImages() {
 
     await browser.close();
     console.log('Scraping completed successfully!');
-} scrapeZaraImages().catch(error => {
+}
+
+scrapeZaraImages().catch(error => {
     console.error('Scraping failed:', error);
     process.exit(1);
 });
-
