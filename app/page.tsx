@@ -1,6 +1,5 @@
 import FileUpload from "@/components/FileUpload"
 import { Menu } from "lucide-react"
-import Image from "next/image"
 
 export default function Home() {
   return (
@@ -23,11 +22,11 @@ export default function Home() {
         <section className="container mx-auto px-6 py-20 md:py-32 flex flex-col items-center justify-center">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-light tracking-tight mb-8">
-              IS THERE AN OUTFIT YOU'D LIKE TO TRY?
+              IS THERE AN OUTFIT YOU&apos;D LIKE TO TRY?
             </h1>
 
             <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-12">
-              If you found a garment you'd like to try virtually, upload an image. Your style matters. Get started and
+              If you found a garment you&apos;d like to try virtually, upload an image. Your style matters. Get started and
               discover how it would look on you.
             </p>
 

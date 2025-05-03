@@ -1,6 +1,6 @@
 "use client"
 
-import { AlertCircleIcon, ImageIcon, UploadIcon, XIcon } from "lucide-react"
+import { AlertCircleIcon, ImageIcon, UploadIcon, XIcon, Loader2 } from "lucide-react"
 import { useFileUpload } from "@/hooks/use-file-upload"
 import { Button } from "@/components/ui/button"
 import { useState, useEffect, useRef, useCallback } from "react"
@@ -293,7 +293,7 @@ export default function FileUpload() {
         {/* Process Image Button */}
         {previewUrl && (
           <Button
-            className="mt-4 w-full"
+            className="mt-4 w-full hover:shadow-lg border-neutral-100 border cursor-pointer"
             onClick={handleProcessImage}
             disabled={isProcessing}
           >
@@ -304,7 +304,8 @@ export default function FileUpload() {
 
       {/* Inditex API Search Status */}
       {isProcessing && (
-        <div className="mt-4 text-center">
+        <div className="mt-4 flex items-center justify-center gap-2">
+          <Loader2 className="size-4 animate-spin" />
           <p className="text-sm">Searching for similar products...</p>
         </div>
       )}
