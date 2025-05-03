@@ -129,7 +129,7 @@ export function ProductGrid({ products: initialProducts }: ProductGridProps) {
                                                     key={index}
                                                     className={`
                                                         group relative aspect-square w-[200px] flex-shrink-0 cursor-pointer
-                                                        overflow-hidden rounded-lg
+                                                        overflow-hidden
                                                         ${selectedVariants[product.id] === index
                                                             ? 'shadow-[0_0_15px_rgba(0,0,0,0.2)] transform scale-[1.02]'
                                                             : 'hover:shadow-[0_0_10px_rgba(0,0,0,0.1)] hover:scale-[1.01]'
@@ -142,7 +142,7 @@ export function ProductGrid({ products: initialProducts }: ProductGridProps) {
                                                         src={image.url}
                                                         alt={`${product.name} - ${image.color}`}
                                                         fill
-                                                        className="object-cover rounded-lg"
+                                                        className="object-cover"
                                                     />
                                                     <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1.5 text-center">
                                                         {image.color}

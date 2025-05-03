@@ -242,13 +242,13 @@ export default function FileUpload() {
                 alt={files[0]?.file?.name || "Uploaded image"}
                 width={320}
                 height={240}
-                className="rounded object-contain max-h-40 max-w-sm"
+                className="object-contain max-h-40 max-w-sm"
               />
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center px-4 py-3 text-center">
               <div
-                className="bg-background mb-2 flex size-11 shrink-0 items-center justify-center rounded-full border"
+                className="bg-background mb-2 flex size-11 shrink-0 items-center justify-center border"
                 aria-hidden="true"
               >
                 <ImageIcon className="size-4 opacity-60" />
@@ -278,7 +278,7 @@ export default function FileUpload() {
           <div className="absolute top-4 right-4">
             <button
               type="button"
-              className="focus-visible:border-ring focus-visible:ring-ring/50 z-50 flex size-8 cursor-pointer items-center justify-center rounded-full bg-black/60 text-white transition-[color,box-shadow] outline-none hover:bg-black/80 focus-visible:ring-[3px]"
+              className="focus-visible:border-ring focus-visible:ring-ring/50 z-50 flex size-8 cursor-pointer items-center justify-center bg-black/60 text-white transition-[color,box-shadow] outline-none hover:bg-black/80 focus-visible:ring-[3px]"
               onClick={() => {
                 removeFile(files[0]?.id);
                 setSearchResults(null);
