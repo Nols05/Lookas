@@ -1,5 +1,5 @@
 # Step 1. Rebuild the source code only when needed
-FROM node:22-alpine3.17 AS base
+FROM node:22-alpine3.21 AS base
 
 WORKDIR /app
 
@@ -15,7 +15,7 @@ COPY . .
 RUN npm run build
 
 # Step 2. Production image, copy all the files and run the application
-FROM node:22-alpine3.17 AS runner
+FROM node:22-alpine3.21 AS runner
 
 WORKDIR /app
 
