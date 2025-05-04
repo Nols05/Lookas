@@ -70,7 +70,7 @@ export default function EvaluationModal({ isOpen, onClose, imageUrl }: Evaluatio
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
             'x-rapidapi-host': 'fashion-analysis-ai-trend-insights-style-reviews.p.rapidapi.com',
-            'x-rapidapi-key': '1ef6fb8153msh6bd32418a554c3cp1f698cjsn43c78b243376' // WARNING: Use environment variables
+            'x-rapidapi-key': process.env.NEXT_PUBLIC_RAPIDAPI_KEY_FASHION_ANALYSIS! // WARNING: Use environment variables
           }
         };
 
