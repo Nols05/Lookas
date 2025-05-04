@@ -184,13 +184,13 @@ export function ProductGrid({ products: initialProducts }: ProductGridProps) {
                                             onClick={() => selectedVariants[product.id] !== undefined && handleTryOn(product, selectedVariants[product.id])}
                                         >
                                             {selectedVariants[product.id] !== undefined
-                                                ? `Probar ${product.scrapedImages?.[selectedVariants[product.id]]?.color}`
-                                                : 'Selecciona un color'
+                                                ? `Try ${product.scrapedImages?.[selectedVariants[product.id]]?.color}`
+                                                : 'Select a color'
                                             }
                                         </Button>
                                         <Button variant="outline" className="flex-1 cursor-none" asChild>
                                             <a href={product.link} target="_blank" rel="noopener noreferrer">
-                                                Ver en tienda
+                                                Check in store
                                             </a>
                                         </Button>
                                     </div>
