@@ -1,4 +1,4 @@
-##Submission for Inditex Challenge at HackUPC 2025.
+# Submission for Inditex Challenge at HackUPC 2025.
 
 A web app for anyone who wants to "look as" someone else. Just upload a photo of someone whose style you admire, and Lookas will find similar outfits from Inditex stores.
 Try them on virtually in your own digital wardrobe!
